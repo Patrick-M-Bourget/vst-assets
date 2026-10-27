@@ -88,6 +88,39 @@
         "radius": 60,
         "size": 11
       }
+    },
+    {
+      "id": "meter_select",
+      "type": "knob",
+      "pos": [927, 108],
+      "diameter": 60,
+      "material": "bakelite_black",
+      "style": {
+        "shape": "pointer_skirt",
+        "tip_width_deg": 70
+      },
+      "angles": [-50, 0, 50]
+    },
+    {
+      "id": "mode",
+      "type": "toggle",
+      "pos": [116, 206],
+      "diameter": 30,
+      "states": ["compress", "limit"]
+    },
+    {
+      "id": "power",
+      "type": "toggle",
+      "pos": [927, 203],
+      "diameter": 30,
+      "states": ["off", "on"]
+    },
+    {
+      "id": "pilot",
+      "type": "lamp",
+      "pos": [985, 203],
+      "diameter": 24,
+      "states": ["off", "on"]
     }
   ]
 }

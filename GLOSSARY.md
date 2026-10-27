@@ -20,6 +20,17 @@ _Avoid_: Widget, control (for the rendered part)
 A Knob with a few fixed positions, given as explicit `angles`, such as a meter-function selector.
 _Avoid_: Rotary switch, selector type
 
+**Toggle**:
+A bat-handle switch on a hex nut. Its Frames are its States, the bat leaning toward the bottom of the Panel in the first and toward the top in the last.
+_Avoid_: Switch (alone), button
+
+**Lamp**:
+A jewel pilot light: faceted coloured glass in a bezel, dark in its first State and lit in its last.
+_Avoid_: LED, indicator
+
+**State**:
+The named position a Toggle or Lamp shows in one Frame, such as `off` and `on`, listed in the Spec's `states` and the Manifest. A Knob's Frames are angles instead.
+
 **Bipolar Knob**:
 A Knob whose neutral value is at 12 o'clock. It always has an odd Frame count, so one Frame sits exactly at 0°.
 
@@ -52,7 +63,7 @@ One image of a Component in one state, with its own shadow in the alpha; a Films
 A static transparent PNG drawn above a Filmstrip, such as a VU Meter's glass and bezel.
 
 **Manifest**:
-`manifest.json` beside the outputs: every file's Frame size and count, angles, Scale Marks and 1× bounds on the Panel.
+`manifest.json` beside the outputs: every file's Frame size and count, each Frame's angle or State, Scale Marks and 1× bounds on the Panel.
 
 **Scale**:
 The pixel multiple the outputs are rendered at, 2× by default. Spec positions are always in 1× pixels.

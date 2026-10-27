@@ -16,6 +16,9 @@ PRESETS = {
     "brushed_aluminium": {"color": "#c8c8c8", "metallic": 1.0, "roughness": 0.3, "anisotropic": 0.8},
     "powder_coat": {"color": "#c4c6c4", "roughness": 0.55},
     "paint_white": {"color": "#e6e2d6", "roughness": 0.45},
+    # Toggle hardware. Part metal only, for the same reason as zinc.
+    "nickel": {"color": "#c9c6bf", "metallic": 0.6, "roughness": 0.2},
+    "jewel_red": {"color": "#d0201a", "roughness": 0.03, "transmission": 1.0},
 }
 
 
@@ -35,6 +38,7 @@ def make(preset, wear, color=None):
     bsdf.inputs["Metallic"].default_value = p.get("metallic", 0.0)
     bsdf.inputs["Coat Weight"].default_value = p.get("coat", 0.0)
     bsdf.inputs["Coat Roughness"].default_value = 0.05 + 0.3 * wear
+    bsdf.inputs["Transmission Weight"].default_value = p.get("transmission", 0.0)
     if p.get("anisotropic"):
         bsdf.inputs["Anisotropic"].default_value = p["anisotropic"]
         # Spun metal: brushed in circles around the knob's axis.
