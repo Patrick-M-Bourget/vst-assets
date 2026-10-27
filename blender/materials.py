@@ -3,9 +3,16 @@
 Wear (0..1) breaks up each surface's roughness with noise, so a glossy
 knob dulls where fingers go and paint loses its even sheen. 0.3 is light
 vintage.
+
+A flat surface can take an image `texture` in place of its colour,
+stretched over an area of the Panel.
 """
 
+from pathlib import Path
+
 import bpy
+
+REPO = Path(__file__).resolve().parent.parent
 
 PRESETS = {
     "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35},
@@ -31,8 +38,10 @@ def srgb_to_linear(hex_color):
     return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
 
 
-def make(preset, wear, color=None):
-    """A new material from a preset. `color` ('#rrggbb') overrides the preset's."""
+def make(preset, wear, color=None, texture=None, area=None):
+    """A new material from a preset. `color` ('#rrggbb') overrides the preset's.
+    `texture` (an image path, relative to the repo) replaces the colour,
+    stretched over `area`: (x, y, w, h) in Blender units, its bottom-left corner first."""
     p = PRESETS[preset]
     mat = bpy.data.materials.new(preset)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
@@ -50,6 +59,9 @@ def make(preset, wear, color=None):
         tangent.axis = "Z"
         links.new(tangent.outputs["Tangent"], bsdf.inputs["Tangent"])
 
+    if texture:
+        stretch(mat, bsdf, texture, area)
+
     roughness = p["roughness"]
     coords = nodes.new("ShaderNodeTexCoord")
     noise = nodes.new("ShaderNodeTexNoise")
@@ -63,3 +75,20 @@ def make(preset, wear, color=None):
     links.new(noise.outputs["Fac"], spread.inputs["Value"])
     links.new(spread.outputs["Result"], bsdf.inputs["Roughness"])
     return mat
+
+
+def stretch(mat, bsdf, texture, area):
+    """Feed the image at `texture` into the base colour, covering `area` once."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    image = nodes.new("ShaderNodeTexImage")
+    image.image = bpy.data.images.load(str(REPO / texture), check_existing=True)
+    image.extension = "EXTEND"
+    x, y, w, h = area
+    position = nodes.new("ShaderNodeNewGeometry")
+    mapping = nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / w, 1 / h, 1)
+    mapping.inputs["Location"].default_value = (-x / w, -y / h, 0)
+    links.new(position.outputs["Position"], mapping.inputs["Vector"])
+    links.new(mapping.outputs["Vector"], image.inputs["Vector"])
+    links.new(image.outputs["Color"], bsdf.inputs["Base Color"])
+    links.new(image.outputs["Color"], bsdf.inputs["Emission Color"])  # a backlit face glows in its own colours

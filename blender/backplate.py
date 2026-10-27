@@ -27,7 +27,8 @@ def build_backplate(spec, wear):
     panel = spec["panel"]
     w, h = panel["size"]
     ear = panel.get("ears", 0)
-    plate_mat = materials.make(panel.get("material", "powder_coat"), wear, panel.get("color"))
+    plate_mat = materials.make(panel.get("material", "powder_coat"), wear, panel.get("color"),
+                               panel.get("texture"), (-w / 2 * PX, -h / 2 * PX, w * PX, h * PX))
     objects = []
 
     # The faceplate, and the rack ears either side of it with a hairline seam between.
@@ -200,9 +201,11 @@ def meter_face(spec, comp, wear):
 
     # The face reaches a little under the bezel, so no edge shows in the window.
     w, h = (d + 8 for d in comp["window"])
+    cx, cy = panel_to_world(spec, *comp["pos"])
     plate = slab(spec, f"{comp['id']}_face", (comp["pos"][0] - w / 2, comp["pos"][1] - h / 2,
                                                comp["pos"][0] + w / 2, comp["pos"][1] + h / 2),
-                 materials.make("meter_face", wear, face.get("color")))
+                 materials.make("meter_face", wear, face.get("color"), face.get("texture"),
+                                (cx - w / 2 * PX, cy - h / 2 * PX, w * PX, h * PX)))
     plate.scale.z = FACE_Z / PLATE_THICKNESS
     plate.location.z = FACE_Z / 2 * PX
     glow = plate.data.materials[0].node_tree.nodes["Principled BSDF"]

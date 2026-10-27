@@ -73,6 +73,10 @@ class Render:
         Image.new("RGBA", (size * self.scale,) * 2, color).save(self.dir / "overlays" / f"{id}.png")
         return self
 
+    def refs(self, paths):
+        self.record["refs"] = [str(p) for p in paths]
+        return self
+
     def write(self):
         self.dir.mkdir(parents=True, exist_ok=True)
         (self.dir / "render.json").write_text(json.dumps(self.record))
@@ -132,6 +136,27 @@ class PackTest(unittest.TestCase):
         pack.pack(out)
         self.assertEqual(Image.open(out / "contact_sheet.png").size, (200, 300))
         self.assertNotIn("backplate", json.loads((out / "final" / "manifest.json").read_text()))
+
+    def test_writes_compare_beside_the_contact_sheet_when_there_are_refs(self):
+        ref = Path(self.root) / "ref.jpg"
+        Image.new("RGB", (300, 200), (180, 30, 30)).save(ref)
+        out = Render(self.root).knob("gain", linear(-150, 150, 4)).backplate().refs([ref]).write()
+        self.assertEqual(pack.pack(out)["warnings"], [])
+        compare = Image.open(out / "compare.png")
+        sheet = Image.open(out / "contact_sheet.png")
+        self.assertEqual(compare.height, sheet.height)
+        self.assertGreater(compare.width, sheet.width)
+
+    def test_warns_and_skips_compare_when_refs_are_missing(self):
+        # A fresh clone has no Refs: they stay on the user's machine (ADR 0003).
+        out = Render(self.root).knob("gain", linear(-150, 150, 4)).refs([Path(self.root) / "gone.jpg"]).write()
+        self.assertEqual(pack.pack(out)["warnings"], ["no Refs found (gone.jpg): compare.png not written"])
+        self.assertFalse((out / "compare.png").exists())
+
+    def test_no_compare_without_refs(self):
+        out = Render(self.root).knob("gain", linear(-150, 150, 4)).write()
+        pack.pack(out)
+        self.assertFalse((out / "compare.png").exists())
 
     def test_copies_overlays(self):
         out = Render(self.root, scale=2).knob("gain", linear(-150, 150, 4)).overlay("vu_glass").write()
