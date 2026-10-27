@@ -4,7 +4,8 @@
 
 Builds the scene from scratch (ADR 0005), with one orthographic camera
 looking straight down at the Panel and one shared light rig, then renders
-each Component's Frames into out/<name>/frames/<id>/.
+each Component's Frames into out/<name>/frames/<id>/. It records what it
+rendered in out/<name>/render.json for tools/pack.py to check against.
 
 Units: 1 Blender unit is 100 px at 1x. Spec positions are 1x pixels from
 the Panel's top-left corner; the Panel lies in the XY plane facing +Z.
@@ -12,6 +13,7 @@ the Panel's top-left corner; the Panel lies in the XY plane facing +Z.
 
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -140,22 +142,35 @@ def frame_angles(comp, quality):
     count = comp.get("frames", 128)
     if quality != "final":
         count = min(count, DRAFT_MAX_FRAMES)
+    if comp.get("bipolar") and count % 2 == 0:
+        # A Bipolar Knob needs a Frame at exactly 12 o'clock.
+        count += 1
     if count == 1:
         return [start]
     return [start + (end - start) * i / (count - 1) for i in range(count)]
 
 
 def render_component(scene, camera, spec, comp, root, out_dir, scale, quality):
+    """Render one Component's Frames; return its entry for render.json."""
     margin = comp.get("margin", 4)
     size = comp["diameter"] + 2 * margin
     frame_camera(camera, scene, root.location.xy, size, scale)
     frames_dir = out_dir / "frames" / comp["id"]
     frames_dir.mkdir(parents=True, exist_ok=True)
-    for i, angle in enumerate(frame_angles(comp, quality)):
+    angles = frame_angles(comp, quality)
+    for i, angle in enumerate(angles):
         # Spec angles are clockwise from 12 o'clock as seen on screen; Blender's +Z rotation is counter-clockwise.
         root.rotation_euler.z = -math.radians(angle)
         scene.render.filepath = str(frames_dir / f"{comp['id']}_{i:04d}.png")
         bpy.ops.render.render(write_still=True)
+    x, y = comp["pos"]
+    return {
+        "id": comp["id"],
+        "type": comp["type"],
+        "bipolar": bool(comp.get("bipolar")),
+        "angles": angles,
+        "bounds": [x - size / 2, y - size / 2, size, size],
+    }
 
 
 BUILDERS = {"knob": build_knob}
@@ -174,13 +189,26 @@ def main():
     build_key_light(spec)
     camera = build_camera()
 
+    # Frames left from an earlier Render would be packed as if they were new.
+    shutil.rmtree(out_dir / "frames", ignore_errors=True)
     roots = {comp["id"]: BUILDERS[comp["type"]](spec, comp) for comp in spec["components"]}
+    rendered = []
     for comp in spec["components"]:
         for other_id, other in roots.items():
             hidden = other_id != comp["id"]
             for obj in [other, *other.children_recursive]:
                 obj.hide_render = hidden
-        render_component(scene, camera, spec, comp, roots[comp["id"]], out_dir, scale, quality)
+        rendered.append(render_component(scene, camera, spec, comp, roots[comp["id"]], out_dir, scale, quality))
+
+    # What tools/pack.py checks the Frames against.
+    record = {
+        "name": spec["name"],
+        "quality": quality,
+        "scale": scale,
+        "panel": {"size": spec["panel"]["size"]},
+        "components": rendered,
+    }
+    (out_dir / "render.json").write_text(json.dumps(record, indent=2) + "\n")
 
 
 main()
