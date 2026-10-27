@@ -7,7 +7,7 @@ GitHub account: `Patrick-M-Bourget`. Run `gh auth status` before any `git push`.
 ## Running
 
 - Blender is pinned to **5.2.3 LTS** (`brew install --cask blender`). Bump it deliberately: re-render a spec and compare before committing.
-- Render: `blender -b --factory-startup -P blender/render.py -- specs/<name>.json`, which writes to `out/<name>/`.
+- Render: `blender -b --factory-startup -P blender/render.py -- specs/<name>.json [--final]`, which writes to `out/<name>/`: a Draft by default, the Final with `--final`. Then pack and check it: `python3 tools/pack.py out/<name>`.
 - Tests: `python3 -m unittest discover tests`. Run them before every commit.
 - Blender's bundled Python has no PIL; anything that needs PIL runs under the system `python3` in `tools/`.
 

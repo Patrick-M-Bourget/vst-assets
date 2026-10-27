@@ -1,0 +1,24 @@
+{
+  "name": "opto_leveler",
+  "notes": {
+    "look_brief": [
+      "LA-2A-style opto leveler; our own name and wordmark (ADR 0004).",
+      "Panel: light grey matte powder coat (#c4c6c4), 3U with rack ears; two large black-headed rack screws per ear, small panel screws along the bottom and in the corners, a piano hinge along the bottom edge.",
+      "Gain and Peak Reduction: glossy black bakelite, round cap on a teardrop pointer skirt, white line on the cap and the skirt tip (knob style pointer_skirt). Numbers 0-100 in steps of 10 printed in an arc around each, no ticks.",
+      "Meter selector: the same knob family, three positions (Gain Reduction, Output +10, Output +4).",
+      "VU meter: dark grey bevelled bezel, cream face, black scale with a red +1..+3 section, 'VU' at both ends, inner 0-100 scale.",
+      "Switches: chrome bat toggles with hex nuts (Limit/Compress, Power). Red jewel pilot lamp as on the 1960s original.",
+      "Original branding to replace: red italic wordmark with a double-line swoosh, and the manufacturer logo above the meter. Ours: a red wordmark, no swoosh, no logo.",
+      "Wear: light vintage (0.3). Labels: small plain sans-serif capitals."
+    ],
+    "refs": ["la2a_front_clip.jpg", "la2a_rack_edit.jpg", "la2a_rack_angled.jpg", "la2a_1176_distressors.jpg", "la2_rack.jpg"]
+  },
+  "panel": { "size": [1100, 306], "scale": 2, "material": "powder_coat" },
+  "light": { "key_angle_deg": 45, "hdri": "studio.exr" },
+  "wear": 0.3,
+  "components": [
+    { "id": "gain", "type": "knob", "pos": [314, 180], "diameter": 64,
+      "material": "bakelite_black", "style": { "shape": "pointer_skirt" },
+      "frames": 128, "angle": [-150, 150] }
+  ]
+}
