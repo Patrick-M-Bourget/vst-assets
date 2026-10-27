@@ -1,6 +1,6 @@
 """Render a Spec in headless Blender.
 
-    blender -b --factory-startup -P blender/render.py -- specs/<name>.json
+    blender -b --factory-startup -P blender/render.py -- specs/<name>.json [--final]
 
 Builds the scene from scratch (ADR 0005), with one orthographic camera
 looking straight down at the Panel and one shared light rig, then renders
@@ -20,16 +20,21 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-PX = 0.01  # Blender units per 1x pixel
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from parts import BUILDERS, PX  # noqa: E402
+
 REPO = Path(__file__).resolve().parent.parent
 DRAFT_MAX_FRAMES = 16
 
 
 def parse_args():
+    """The Spec's path, and whether this is a Final (`--final`) rather than a Draft."""
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    if len(argv) != 1:
-        sys.exit("usage: blender -b --factory-startup -P blender/render.py -- specs/<name>.json")
-    return Path(argv[0])
+    final = "--final" in argv
+    paths = [a for a in argv if a != "--final"]
+    if len(paths) != 1:
+        sys.exit("usage: blender -b --factory-startup -P blender/render.py -- specs/<name>.json [--final]")
+    return Path(paths[0]), final
 
 
 def reset_scene():
@@ -50,14 +55,15 @@ def set_quality(scene, quality):
         scene.render.engine = "CYCLES"
         scene.cycles.samples = 128
         scene.cycles.use_denoising = True
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+        prefs.compute_device_type = "METAL"
+        prefs.get_devices()
+        if any(d.type == "METAL" for d in prefs.devices):
+            for d in prefs.devices:
+                d.use = d.type == "METAL"
+            scene.cycles.device = "GPU"
     else:
         scene.render.engine = "BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "BLENDER_EEVEE_NEXT"
-
-
-def panel_to_world(spec, x, y):
-    """1x Panel pixels (top-left origin, y down) to Blender XY (centre origin, y up)."""
-    w, h = spec["panel"]["size"]
-    return (x - w / 2) * PX, (h / 2 - y) * PX
 
 
 def build_world(spec):
@@ -69,21 +75,34 @@ def build_world(spec):
     hdri = Path(bpy.utils.system_resource("DATAFILES", path="studiolights")) / "world" / light.get("hdri", "studio.exr")
     env.image = bpy.data.images.load(str(hdri))
     background = nodes["Background"]
-    background.inputs["Strength"].default_value = light.get("hdri_strength", 0.4)
+    background.inputs["Strength"].default_value = light.get("hdri_strength", 0.25)
     world.node_tree.links.new(env.outputs["Color"], background.inputs["Color"])
 
 
 def build_key_light(spec):
-    """A sun from the top-left, `key_angle_deg` above the Panel."""
+    """The key, from the top-left at `key_angle_deg` above the Panel: a sun
+    for crisp shadows, and a large softbox in the same direction so glossy
+    surfaces show a soft highlight on their top-left shoulders."""
     light = spec.get("light", {})
     elevation = math.radians(light.get("key_angle_deg", 45))
-    data = bpy.data.lights.new("Key", "SUN")
-    data.energy = light.get("key_energy", 3.0)
-    data.angle = math.radians(light.get("key_softness_deg", 8))
-    key = bpy.data.objects.new("Key", data)
-    bpy.context.scene.collection.objects.link(key)
     toward_light = Vector((-1, 1, 0)).normalized() * math.cos(elevation) + Vector((0, 0, math.sin(elevation)))
-    key.rotation_euler = toward_light.to_track_quat("Z", "Y").to_euler()
+    aim = toward_light.to_track_quat("Z", "Y").to_euler()
+
+    sun = bpy.data.lights.new("Key", "SUN")
+    sun.energy = light.get("key_energy", 2.5)
+    sun.angle = math.radians(light.get("key_softness_deg", 8))
+    key = bpy.data.objects.new("Key", sun)
+    key.rotation_euler = aim
+    bpy.context.scene.collection.objects.link(key)
+
+    area = bpy.data.lights.new("Softbox", "AREA")
+    area.shape = "DISK"
+    area.size = 12
+    area.energy = light.get("softbox_energy", 15000)
+    softbox = bpy.data.objects.new("Softbox", area)
+    softbox.location = toward_light * 15
+    softbox.rotation_euler = aim
+    bpy.context.scene.collection.objects.link(softbox)
 
 
 def build_camera():
@@ -104,39 +123,6 @@ def frame_camera(camera, scene, center_xy, size_px, scale):
     scene.render.resolution_y = round(size_px * scale)
 
 
-def material(name, color, metallic=0.0, roughness=0.5):
-    mat = bpy.data.materials.new(name)
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    bsdf.inputs["Base Color"].default_value = (*color, 1)
-    bsdf.inputs["Metallic"].default_value = metallic
-    bsdf.inputs["Roughness"].default_value = roughness
-    return mat
-
-
-def build_knob(spec, comp):
-    """Smoke-test Knob: a bevelled cylinder with a pointer bar. Returns its root object."""
-    radius = comp["diameter"] / 2 * PX
-    height = radius * 0.8
-    bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=radius, depth=height, location=(0, 0, height / 2))
-    body = bpy.context.object
-    body.name = f"{comp['id']}_body"
-    bevel = body.modifiers.new("Bevel", "BEVEL")
-    bevel.width = radius * 0.08
-    bevel.segments = 4
-    bpy.ops.object.shade_smooth()
-    body.data.materials.append(material("knob_body", (0.05, 0.05, 0.05), roughness=0.35))
-
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, radius * 0.55, height + 0.002))
-    pointer = bpy.context.object
-    pointer.name = f"{comp['id']}_pointer"
-    pointer.scale = (radius * 0.08, radius * 0.7, 0.004)
-    pointer.data.materials.append(material("pointer", (0.9, 0.9, 0.88), roughness=0.4))
-    pointer.parent = body
-
-    body.location.xy = panel_to_world(spec, *comp["pos"])
-    return body
-
-
 def frame_angles(comp, quality):
     start, end = comp.get("angle", [-150, 150])
     count = comp.get("frames", 128)
@@ -150,10 +136,9 @@ def frame_angles(comp, quality):
     return [start + (end - start) * i / (count - 1) for i in range(count)]
 
 
-def render_component(scene, camera, spec, comp, root, out_dir, scale, quality):
+def render_component(scene, camera, comp, root, extent, out_dir, scale, quality):
     """Render one Component's Frames; return its entry for render.json."""
-    margin = comp.get("margin", 4)
-    size = comp["diameter"] + 2 * margin
+    size = math.ceil(extent) + 2 * comp.get("margin", 4)
     frame_camera(camera, scene, root.location.xy, size, scale)
     frames_dir = out_dir / "frames" / comp["id"]
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -173,13 +158,11 @@ def render_component(scene, camera, spec, comp, root, out_dir, scale, quality):
     }
 
 
-BUILDERS = {"knob": build_knob}
-
 
 def main():
-    spec_path = parse_args()
+    spec_path, final = parse_args()
     spec = json.loads(spec_path.read_text())
-    quality = spec.get("quality", "draft")
+    quality = "final" if final else "draft"
     scale = spec["panel"].get("scale", 2) if quality == "final" else 1
     out_dir = REPO / "out" / spec["name"]
 
@@ -191,14 +174,16 @@ def main():
 
     # Frames left from an earlier Render would be packed as if they were new.
     shutil.rmtree(out_dir / "frames", ignore_errors=True)
-    roots = {comp["id"]: BUILDERS[comp["type"]](spec, comp) for comp in spec["components"]}
+    wear = spec.get("wear", 0.3)
+    built = {comp["id"]: BUILDERS[comp["type"]](spec, comp, wear) for comp in spec["components"]}
     rendered = []
     for comp in spec["components"]:
-        for other_id, other in roots.items():
+        for other_id, (other, _) in built.items():
             hidden = other_id != comp["id"]
             for obj in [other, *other.children_recursive]:
                 obj.hide_render = hidden
-        rendered.append(render_component(scene, camera, spec, comp, roots[comp["id"]], out_dir, scale, quality))
+        root, extent = built[comp["id"]]
+        rendered.append(render_component(scene, camera, comp, root, extent, out_dir, scale, quality))
 
     # What tools/pack.py checks the Frames against.
     record = {

@@ -12,7 +12,8 @@ The first panel is an LA-2A-style opto leveler. See issue #1 for the spec and `G
 ## Render
 
 ```sh
-blender -b --factory-startup -P blender/render.py -- specs/<name>.json
+blender -b --factory-startup -P blender/render.py -- specs/<name>.json [--final]
+python3 tools/pack.py out/<name>
 ```
 
-Output goes to `out/<name>/`.
+A Draft (Eevee, 1×, at most 16 frames) by default; `--final` renders with Cycles at the spec's scale. Output goes to `out/<name>/`, and the files to ship to `out/<name>/final/`.
