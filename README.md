@@ -4,6 +4,12 @@ Skeuomorphic UI assets for audio plugins, rendered from code. A JSON spec descri
 
 The first panel is an LA-2A-style opto leveler. See issue #1 for the spec and `GLOSSARY.md` for the vocabulary.
 
+Its Final render ships in `assets/opto_leveler/`: the backplate, a filmstrip per control, the VU meter's bezel and glass overlay, `manifest.json`, and a contact sheet.
+
+![OPTO-2 contact sheet](assets/opto_leveler/contact_sheet.png)
+
+To render with Claude Code, use the `vst-assets` skill in `.claude/skills/`.
+
 ## Requirements
 
 - Blender 5.2.3 LTS (`brew install --cask blender`)
