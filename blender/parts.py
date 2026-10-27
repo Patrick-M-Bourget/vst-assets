@@ -70,7 +70,7 @@ def teardrop(radius, tip, half_width_deg, segments=256):
     for i in range(segments):
         theta = 2 * math.pi * i / segments
         off = math.degrees(min(theta, 2 * math.pi - theta))  # degrees away from 12 o'clock
-        pull = max(0.0, 1 - off / half_width_deg) ** 1.6
+        pull = max(0.0, 1 - off / half_width_deg) ** 1.2
         r = radius + (tip - radius) * pull
         points.append((r * math.sin(theta), r * math.cos(theta)))
     return points
@@ -94,9 +94,9 @@ def build_knob(spec, comp, wear):
 
     if shape == "pointer_skirt":
         # The skirt's tail points away from the line, as on an LA-2A.
-        skirt_r, tip = r * 1.1, r * style.get("tip", 1.6)
+        skirt_r, tip = r * 1.1, r * style.get("tip", 1.5)
         skirt_h = h * 0.3
-        outline = [(x, -y) for x, y in teardrop(skirt_r, tip, style.get("tip_width_deg", 45))]
+        outline = [(x, -y) for x, y in teardrop(skirt_r, tip, style.get("tip_width_deg", 50))]
         skirt = prism(f"{comp['id']}_skirt", outline, 0, skirt_h)
         soften(skirt, skirt_h * 0.35, segments=5)
         skirt.data.materials.append(body_mat)

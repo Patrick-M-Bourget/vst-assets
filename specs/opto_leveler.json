@@ -11,14 +11,83 @@
       "Original branding to replace: red italic wordmark with a double-line swoosh, and the manufacturer logo above the meter. Ours: a red wordmark, no swoosh, no logo.",
       "Wear: light vintage (0.3). Labels: small plain sans-serif capitals."
     ],
-    "refs": ["la2a_front_clip.jpg", "la2a_rack_edit.jpg", "la2a_rack_angled.jpg", "la2a_1176_distressors.jpg", "la2_rack.jpg"]
+    "refs": [
+      "la2a_front_clip.jpg",
+      "la2a_rack_edit.jpg",
+      "la2a_rack_angled.jpg",
+      "la2a_1176_distressors.jpg",
+      "la2_rack.jpg"
+    ]
   },
-  "panel": { "size": [1100, 306], "scale": 2, "material": "powder_coat" },
-  "light": { "key_angle_deg": 45, "hdri": "studio.exr" },
+  "panel": {
+    "size": [1100, 306],
+    "scale": 2,
+    "material": "powder_coat",
+    "ears": 44,
+    "hinge": true,
+    "screws": [
+      [106, 23],
+      [656, 53],
+      [992, 20],
+      [89, 281],
+      [398, 281],
+      [703, 278],
+      [1012, 276]
+    ],
+    "labels": [
+      { "text": "OPTO-2", "pos": [180, 70], "size": 22, "font": "bold_italic", "color": "#9b2b2f", "tracking": 1.05 },
+      { "text": "LEVELING AMPLIFIER", "pos": [330, 64], "size": 8, "tracking": 1.15 },
+      { "text": "MODEL OPTO-2", "pos": [330, 84], "size": 8, "tracking": 1.15 },
+      { "text": "LIMIT", "pos": [116, 172], "size": 8 },
+      { "text": "COMPRESS", "pos": [118, 240], "size": 8 },
+      { "text": "GAIN REDUCTION", "pos": [939, 37], "size": 8 },
+      { "text": "OUTPUT +10", "pos": [861, 56], "size": 8 },
+      { "text": "OUTPUT +4", "pos": [990, 56], "size": 8 },
+      { "text": "ON", "pos": [927, 169], "size": 8 },
+      { "text": "POWER", "pos": [927, 236], "size": 8 }
+    ]
+  },
+  "light": {
+    "key_angle_deg": 45,
+    "hdri": "studio.exr"
+  },
   "wear": 0.3,
   "components": [
-    { "id": "gain", "type": "knob", "pos": [314, 180], "diameter": 64,
-      "material": "bakelite_black", "style": { "shape": "pointer_skirt" },
-      "frames": 128, "angle": [-150, 150] }
+    {
+      "id": "gain",
+      "type": "knob",
+      "pos": [314, 180],
+      "diameter": 64,
+      "material": "bakelite_black",
+      "style": {
+        "shape": "pointer_skirt"
+      },
+      "frames": 128,
+      "angle": [-150, 150],
+      "label": { "text": "GAIN", "offset": [8, 84], "size": 8 },
+      "scale_marks": {
+        "values": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        "radius": 60,
+        "size": 11
+      }
+    },
+    {
+      "id": "peak_reduction",
+      "type": "knob",
+      "pos": [782, 174],
+      "diameter": 64,
+      "material": "bakelite_black",
+      "style": {
+        "shape": "pointer_skirt"
+      },
+      "frames": 128,
+      "angle": [-150, 150],
+      "label": { "text": "PEAK REDUCTION", "offset": [0, 88], "size": 8 },
+      "scale_marks": {
+        "values": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        "radius": 60,
+        "size": 11
+      }
+    }
   ]
 }

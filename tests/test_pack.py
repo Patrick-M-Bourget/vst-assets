@@ -14,13 +14,15 @@ PANEL = [200, 100]
 
 
 def knob_frame(size, angle, color=(30, 30, 30, 255)):
-    """A fake Frame: a disc with a pointer at `angle` (clockwise from 12 o'clock)."""
+    """A fake Frame: a disc with a pointer at `angle` (clockwise from 12 o'clock),
+    clear of the border as a real Frame's margin keeps it."""
     im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(im)
-    draw.ellipse([2, 2, size - 3, size - 3], fill=color)
+    pad = size // 5
+    draw.ellipse([pad, pad, size - 1 - pad, size - 1 - pad], fill=color)
     c = size / 2
     a = math.radians(angle)
-    draw.line([c, c, c + math.sin(a) * c * 0.8, c - math.cos(a) * c * 0.8], fill=(240, 240, 240, 255), width=3)
+    draw.line([c, c, c + math.sin(a) * c * 0.5, c - math.cos(a) * c * 0.5], fill=(240, 240, 240, 255), width=3)
     return im
 
 
@@ -184,6 +186,27 @@ class PackTest(unittest.TestCase):
         out = Render(self.root).knob("gain", linear(-150, 150, 100), size=200).write()
         manifest = pack.pack(out)
         self.assertEqual(manifest["warnings"], ["knob_gain_100f_1x.png is 200x20000, over the 16384 px texture limit many hosts have"])
+
+    def test_warns_when_a_frame_is_cut_off_at_its_edge(self):
+        angles = linear(-150, 150, 3)
+        frames = [knob_frame(40, a) for a in angles]
+        ImageDraw.Draw(frames[1]).rectangle([0, 30, 39, 39], fill=(0, 0, 0, 90))  # a shadow running off the bottom
+        out = Render(self.root).knob("gain", angles, frames=frames).write()
+        self.assertEqual(pack.pack(out)["warnings"],
+                         ["gain_0001.png reaches its edge (alpha 90): a shadow or part is cut off; widen the Frame"])
+
+    def test_feathers_render_noise_off_frame_edges(self):
+        # Faint denoiser noise on a Frame's border would draw a seam on the Backplate.
+        angles = linear(-150, 150, 3)
+        frames = [knob_frame(40, a) for a in angles]
+        for frame in frames:
+            ImageDraw.Draw(frame).rectangle([0, 0, 39, 39], outline=(0, 0, 0, 4))
+        out = Render(self.root).knob("gain", angles, frames=frames).write()
+        pack.pack(out)
+        strip = Image.open(out / "final" / "knob_gain_3f_1x.png")
+        border = [strip.getpixel((x, 0))[3] for x in range(40)] + [strip.getpixel((0, y))[3] for y in range(120)]
+        self.assertEqual(max(border), 0)
+        self.assertEqual(strip.getpixel((20, 20)), frames[0].getpixel((20, 20)))  # the Knob itself is untouched
 
     def test_no_warnings_for_a_normal_filmstrip(self):
         out = Render(self.root).knob("gain", linear(-150, 150, 8)).write()

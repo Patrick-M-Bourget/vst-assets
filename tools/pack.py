@@ -18,6 +18,8 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 MAX_TEXTURE = 16384
+EDGE_ALPHA = 24  # above this on a Frame's border, something runs off its edge; below, render noise
+FEATHER = 3  # px at 1x over which a Frame's alpha fades to nothing at its border
 PREVIEW_BACKGROUND = (128, 128, 128, 255)
 
 
@@ -78,8 +80,29 @@ def check_image(path, size):
     return []
 
 
-def stitch(frame_paths):
-    frames = [load(p) for p in frame_paths]
+def edge_alpha(frame):
+    """The most opaque pixel on a Frame's border."""
+    alpha = frame.getchannel("A")
+    w, h = alpha.size
+    border = [alpha.crop(box) for box in [(0, 0, w, 1), (0, h - 1, w, h), (0, 0, 1, h), (w - 1, 0, w, h)]]
+    return max(b.getextrema()[1] for b in border)
+
+
+def feather(frame, width):
+    """Fade alpha to zero over `width` px at the border, so faint render noise
+    there can't draw a seam on the Backplate."""
+    w, h = frame.size
+    ramp = Image.new("L", (w, h), 0)
+    for i in range(1, width):
+        ramp.paste(round(255 * i / width), (i, i, w - i, h - i))
+    ramp.paste(255, (width, width, w - width, h - width))
+    frame = frame.copy()
+    frame.putalpha(ImageChops.multiply(frame.getchannel("A"), ramp))
+    return frame
+
+
+def stitch(frame_paths, feather_px):
+    frames = [feather(load(p), feather_px) for p in frame_paths]
     w, h = frames[0].size
     strip = Image.new("RGBA", (w, h * len(frames)))
     for i, frame in enumerate(frames):
@@ -88,17 +111,20 @@ def stitch(frame_paths):
 
 
 def contact_sheet(record, backplate, strips):
-    """The Panel three times, stacked: every Component at its first, middle and last Frame."""
+    """The Panel three times, stacked: every Component at its first, middle and
+    last Frame, cut from the Filmstrips that ship."""
     scale = record["scale"]
     w, h = (round(d * scale) for d in record["panel"]["size"])
     sheet = Image.new("RGBA", (w, h * 3), PREVIEW_BACKGROUND)
     for row in range(3):
         if backplate is not None:
             sheet.alpha_composite(backplate, (0, h * row))
-        for comp, frames in strips:
-            index = [0, len(frames) // 2, len(frames) - 1][row]
+        for comp, strip, count in strips:
+            index = [0, count // 2, count - 1][row]
+            fh = strip.height // count
+            frame = strip.crop((0, fh * index, strip.width, fh * (index + 1)))
             x, y = comp["bounds"][:2]
-            sheet.alpha_composite(load(frames[index]), (round(x * scale), round(y * scale) + h * row))
+            sheet.alpha_composite(frame, (round(x * scale), round(y * scale) + h * row))
     return sheet
 
 
@@ -145,11 +171,18 @@ def pack(out_dir):
         manifest["backplate"] = {"file": file, "size": list(panel_size)}
         backplate = load(backplate_path)
 
+    strips = []
     for comp in record["components"]:
-        strip = stitch(frames[comp["id"]])
+        strip = stitch(frames[comp["id"]], FEATHER * scale)
+        strips.append((comp, strip, len(frames[comp["id"]])))
         count = len(frames[comp["id"]])
         file = f"{comp['type']}_{comp['id']}_{count}f_{scale}x.png"
         strip.save(final / file, optimize=True)
+        cut = [(p, a) for p in frames[comp["id"]] if (a := edge_alpha(load(p))) > EDGE_ALPHA]
+        if cut:
+            path, alpha = max(cut, key=lambda c: c[1])
+            manifest["warnings"].append(
+                f"{path.name} reaches its edge (alpha {alpha}): a shadow or part is cut off; widen the Frame")
         if max(strip.size) > MAX_TEXTURE:
             manifest["warnings"].append(
                 f"{file} is {strip.size[0]}x{strip.size[1]}, over the {MAX_TEXTURE} px texture limit many hosts have")
@@ -172,7 +205,7 @@ def pack(out_dir):
         manifest["overlays"].append({"id": overlay["id"], "file": file, "bounds": overlay["bounds"]})
 
     (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    contact_sheet(record, backplate, [(c, frames[c["id"]]) for c in record["components"]]).save(out_dir / "contact_sheet.png")
+    contact_sheet(record, backplate, strips).save(out_dir / "contact_sheet.png")
     return manifest
 
 

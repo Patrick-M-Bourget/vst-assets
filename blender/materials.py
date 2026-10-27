@@ -10,6 +10,9 @@ import bpy
 PRESETS = {
     "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35},
     "chrome": {"color": "#e8e8e8", "metallic": 1.0, "roughness": 0.08},
+    # Zinc-plated hardware. Not metallic: from straight above, metal would
+    # only mirror the dark studio ceiling.
+    "zinc": {"color": "#a4a6a6", "roughness": 0.35},
     "brushed_aluminium": {"color": "#c8c8c8", "metallic": 1.0, "roughness": 0.3, "anisotropic": 0.8},
     "powder_coat": {"color": "#c4c6c4", "roughness": 0.55},
     "paint_white": {"color": "#e6e2d6", "roughness": 0.45},
