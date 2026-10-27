@@ -38,7 +38,7 @@ The written summary of the Refs in a Spec's `notes`: knob family, materials, col
 ## Outputs
 
 **Backplate**:
-The Panel's static image, rendered with the Components hidden from the camera but still casting their shadows onto it. Labels and Scale Marks are printed into it.
+The Panel's static image: plate, rack ears, screws, hinge, and the printed labels and Scale Marks, with the Components left out. Their shadows travel in their Frames (ADR 0007).
 _Avoid_: Background (except in file names), bg image
 
 **Filmstrip**:
@@ -46,7 +46,7 @@ A Component's Frames stacked top to bottom in one PNG.
 _Avoid_: Sprite sheet, strip
 
 **Frame**:
-One image of a Component in one state; a Filmstrip's height is its Frame height times its Frame count.
+One image of a Component in one state, with its own shadow in the alpha; a Filmstrip's height is its Frame height times its Frame count.
 
 **Overlay**:
 A static transparent PNG drawn above a Filmstrip, such as a VU Meter's glass and bezel.
@@ -60,7 +60,7 @@ The pixel multiple the outputs are rendered at, 2× by default. Spec positions a
 ## Process
 
 **Draft**:
-A quick Render (Eevee, 1×, at most 16 Frames) used to check the look.
+A quick Render (Cycles at 16 samples, 1×, at most 16 Frames) used to check the look.
 
 **Final**:
 The Render that ships (Cycles, the Spec's Scale, every Frame).

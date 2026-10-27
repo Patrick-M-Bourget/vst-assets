@@ -16,4 +16,4 @@ blender -b --factory-startup -P blender/render.py -- specs/<name>.json [--final]
 python3 tools/pack.py out/<name>
 ```
 
-A Draft (Eevee, 1×, at most 16 frames) by default; `--final` renders with Cycles at the spec's scale. Output goes to `out/<name>/`, and the files to ship to `out/<name>/final/`.
+A Draft (16 samples, 1×, at most 16 frames) by default; `--final` renders with Cycles at the spec's scale. Output goes to `out/<name>/`, and the files to ship to `out/<name>/final/`.
