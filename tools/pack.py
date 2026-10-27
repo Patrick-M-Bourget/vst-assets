@@ -5,7 +5,8 @@
 Reads out/<name>/render.json (written by blender/render.py) and the Frames,
 Backplate and Overlays beside it. Writes into out/<name>/final/ one
 Filmstrip per Component, the Backplate, the Overlays and manifest.json, and
-into out/<name>/ the Contact Sheet and a preview GIF per Component.
+into out/<name>/ the Contact Sheet, a preview GIF per Component, and, when
+the Spec lists Refs, compare.png: the Contact Sheet beside the moodboard.
 
 Exits 1, listing every problem, when the Frames don't match render.json.
 """
@@ -16,6 +17,8 @@ import sys
 from pathlib import Path
 
 from PIL import Image, ImageChops
+
+import refboard
 
 MAX_TEXTURE = 16384
 EDGE_ALPHA = 24  # above this on a Frame's border, something runs off its edge; below, render noise
@@ -136,6 +139,23 @@ def contact_sheet(record, backplate, strips, overlays):
     return sheet
 
 
+def compare(sheet, refs, warnings):
+    """The Contact Sheet beside a moodboard of the Refs found on this machine, or None."""
+    found = [Path(p) for p in refs if Path(p).exists()]
+    missing = ", ".join(Path(p).name for p in refs if not Path(p).exists())
+    if not found:
+        warnings.append(f"no Refs found ({missing}): compare.png not written")
+        return None
+    if missing:
+        warnings.append(f"Refs missing ({missing}): compare.png shows the rest")
+    board, _ = refboard.moodboard(found)
+    board = board.resize((round(board.width * sheet.height / board.height), sheet.height), Image.LANCZOS)
+    image = Image.new("RGB", (sheet.width + board.width, sheet.height))
+    image.paste(sheet.convert("RGB"), (0, 0))
+    image.paste(board, (sheet.width, 0))
+    return image
+
+
 def preview_gif(frame_paths, path):
     frames = []
     for p in frame_paths:
@@ -217,7 +237,13 @@ def pack(out_dir):
         overlays.append((overlay, load(final / file)))
 
     (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    contact_sheet(record, backplate, strips, overlays).save(out_dir / "contact_sheet.png")
+    sheet = contact_sheet(record, backplate, strips, overlays)
+    sheet.save(out_dir / "contact_sheet.png")
+    if record.get("refs"):
+        side_by_side = compare(sheet, record["refs"], manifest["warnings"])
+        if side_by_side:
+            side_by_side.save(out_dir / "compare.png")
+        (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
 
 

@@ -303,6 +303,8 @@ def main():
         "panel": {"size": spec["panel"]["size"]},
         "components": rendered,
         "overlays": [{"id": overlay_id, "bounds": rect} for overlay_id, rect in overlays.items()],
+        # Where this machine keeps the Refs, for compare.png (ADR 0003: never committed).
+        "refs": [str(REPO / "refs" / spec["name"] / ref) for ref in spec.get("notes", {}).get("refs", [])],
     }
     (out_dir / "render.json").write_text(json.dumps(record, indent=2) + "\n")
 

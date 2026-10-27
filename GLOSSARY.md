@@ -47,6 +47,9 @@ One number from 0 to 1 for how used the hardware looks: scratches, dulled paint,
 **Refs**:
 Reference images for a Spec, in `refs/<spec name>/`. They stay on the user's machine and are never committed.
 
+**Moodboard**:
+The Refs laid out in a grid, each over its dominant colours as swatches; `tools/refboard.py` makes it under `out/`.
+
 **Look Brief**:
 The written summary of the Refs in a Spec's `notes`: knob family, materials, colours, Wear and lighting, each tied to a Spec field.
 
@@ -82,6 +85,9 @@ The Render that ships (Cycles, the Spec's Scale, every Frame).
 
 **Contact Sheet**:
 The Backplate with each Component's first, middle and last Frames composited in place: the image a Draft is reviewed from.
+
+**Compare**:
+`compare.png`: the Contact Sheet beside the Moodboard, written by `pack.py` when the Spec lists Refs. It's how a Draft is checked against its Refs.
 
 **Gate**:
 A point where the user approves the look before work goes on.
