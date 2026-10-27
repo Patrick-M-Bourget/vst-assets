@@ -36,10 +36,15 @@ def load(path):
     return image
 
 
+def frame_values(comp):
+    """What each Frame shows: a Knob's angles, or a Toggle's or Lamp's States."""
+    return ("angles", comp["angles"]) if "angles" in comp else ("states", comp["states"])
+
+
 def check_frames(comp, frame_paths, scale):
     """Every problem with one Component's Frames, as messages."""
     cid = comp["id"]
-    expected = len(comp["angles"])
+    expected = len(frame_values(comp)[1])
     if len(frame_paths) != expected:
         return [f"{cid}: {len(frame_paths)} Frames, expected {expected}"]
 
@@ -186,13 +191,14 @@ def pack(out_dir):
         if max(strip.size) > MAX_TEXTURE:
             manifest["warnings"].append(
                 f"{file} is {strip.size[0]}x{strip.size[1]}, over the {MAX_TEXTURE} px texture limit many hosts have")
+        key, values = frame_values(comp)
         manifest["components"].append({
             "id": comp["id"],
             "type": comp["type"],
             "file": file,
             "frame_size": [strip.size[0], strip.size[1] // count],
             "frames": count,
-            "angles": [round(a, 4) for a in comp["angles"]],
+            key: [round(a, 4) for a in values] if key == "angles" else values,
             "bounds": comp["bounds"],
         })
         preview_gif(frames[comp["id"]], out_dir / f"preview_{comp['id']}.gif")

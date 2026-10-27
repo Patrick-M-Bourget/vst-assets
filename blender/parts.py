@@ -1,8 +1,9 @@
 """Procedural Component generators.
 
 Each builder makes one Component at the scene origin, moves it to its
-place on the Panel, and returns (root object, Frame size in 1x px). The
-root is what turns; everything else is parented to it.
+place on the Panel, and returns (root object, Frame size in 1x px, pose).
+Everything is parented to the root. pose(value) sets the Component to what
+one Frame shows: a Knob's angle, or a Toggle's or Lamp's State.
 """
 
 import math
@@ -108,7 +109,104 @@ def build_knob(spec, comp, wear):
     line.parent = body
 
     body.location.xy = panel_to_world(spec, *comp["pos"])
-    return body, 2 * extent / PX
+
+    def pose(angle):
+        # Spec angles are clockwise from 12 o'clock as seen on screen; Blender's +Z rotation is counter-clockwise.
+        body.rotation_euler.z = -math.radians(angle)
+
+    return body, 2 * extent / PX, pose
+
+
+def states(comp):
+    return comp.get("states", ["off", "on"])
+
+
+def build_toggle(spec, comp, wear):
+    """A bat-handle toggle switch on a hex nut. The bat leans toward the
+    bottom of the Panel in the first State and toward the top in the last;
+    any States between are spread evenly."""
+    nut_r = comp.get("diameter", 30) / 2 / math.cos(math.radians(30)) * PX  # diameter across flats
+    bat = comp.get("bat_length", 36) * PX
+    tilt = comp.get("tilt_deg", 22)
+    metal = materials.make(comp.get("material", "nickel"), wear)
+
+    hexagon = [(nut_r * math.cos(math.radians(60 * i + 30)), nut_r * math.sin(math.radians(60 * i + 30)))
+               for i in range(6)]
+    nut = prism(f"{comp['id']}_nut", hexagon, 0, 4 * PX)
+    soften(nut, 0.8 * PX, segments=3)
+    bushing = frustum(f"{comp['id']}_bushing", 6.5 * PX, 6.5 * PX, 4 * PX, 9 * PX, segments=64)
+    soften(bushing, 0.8 * PX, segments=3)
+    pivot = bpy.data.objects.new(f"{comp['id']}_pivot", None)
+    bpy.context.scene.collection.objects.link(pivot)
+    pivot.location.z = 9 * PX
+    handle = frustum(f"{comp['id']}_bat", 3.6 * PX, 2.2 * PX, 0, bat, segments=48)
+    soften(handle, 0.6 * PX, segments=2)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=3.6 * PX, location=(0, 0, bat))
+    tip = bpy.context.object
+    tip.name = f"{comp['id']}_tip"
+    bpy.ops.object.shade_smooth()
+    for obj in (nut, bushing, handle, tip):
+        obj.data.materials.append(metal)
+    for obj in (bushing, pivot):
+        obj.parent = nut
+    for obj in (handle, tip):
+        obj.parent = pivot
+
+    nut.location.xy = panel_to_world(spec, *comp["pos"])
+    names = states(comp)
+    reach = (bat + 3.6 * PX) * math.sin(math.radians(tilt)) + 3.6 * PX
+
+    def pose(state):
+        i = names.index(state)
+        lean = -tilt + 2 * tilt * i / (len(names) - 1)
+        # Rotating about -X leans the bat toward +Y, the top of the Panel.
+        pivot.rotation_euler.x = -math.radians(lean)
+
+    return nut, 2 * max(nut_r, reach) / PX, pose
+
+
+def build_lamp(spec, comp, wear):
+    """A jewel pilot Lamp: a faceted glass dome in a bezel, over a bulb that
+    is dark in the first State and fully lit in the last."""
+    r = comp.get("diameter", 24) / 2 * PX
+    bezel = frustum(f"{comp['id']}_bezel", r, r * 0.9, 0, 2.5 * PX, segments=64)
+    soften(bezel, 0.8 * PX, segments=3)
+    bezel.data.materials.append(materials.make(comp.get("material", "nickel"), wear))
+
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0),
+                           plane_no=(0, 0, 1), clear_inner=True)
+    bmesh.ops.scale(bm, vec=(r * 0.75, r * 0.75, r * 0.7), verts=bm.verts)
+    jewel = new_object(f"{comp['id']}_jewel", bm)  # flat-shaded: the facets catch the light
+    jewel.location.z = 2 * PX
+    glass = materials.make("jewel_red", wear, comp.get("color"))
+    jewel.data.materials.append(glass)
+
+    bulb = frustum(f"{comp['id']}_bulb", r * 0.6, r * 0.6, 0, 2 * PX, segments=48)
+    bulb_mat = materials.make("paint_white", wear, "#4a4440")  # an unlit bulb behind the glass
+    bulb.data.materials.append(bulb_mat)
+    for obj in (jewel, bulb):
+        obj.parent = bezel
+        # A Frame can't show light spilling onto the Panel, only shadow: keep the glow inside the Lamp.
+        obj.visible_diffuse = False
+
+    bezel.location.xy = panel_to_world(spec, *comp["pos"])
+    names = states(comp)
+    glow = comp.get("glow", 1.0)
+
+    glowing = []
+    for mat, color, strength in ((glass, None, 1.5), (bulb_mat, (1, 0.55, 0.3, 1), 12)):
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Emission Color"].default_value = color or tuple(bsdf.inputs["Base Color"].default_value)
+        glowing.append((bsdf.inputs["Emission Strength"], strength * glow))
+
+    def pose(state):
+        lit = names.index(state) / (len(names) - 1)
+        for emission, strength in glowing:
+            emission.default_value = strength * lit
+
+    return bezel, 2 * r / PX, pose
 
 
 def box(name, width, length, at):
@@ -120,4 +218,4 @@ def box(name, width, length, at):
     return new_object(name, bm)
 
 
-BUILDERS = {"knob": build_knob}
+BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp}

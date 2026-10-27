@@ -47,6 +47,19 @@ class Render:
             frame.save(frames_dir / f"{id}_{i:04d}.png")
         return self
 
+    def toggle(self, id, states=("off", "on"), size=30, pos=(150, 50)):
+        x, y = pos
+        self.record["components"].append({
+            "id": id, "type": "toggle", "bipolar": False, "states": list(states),
+            "bounds": [x - size / 2, y - size / 2, size, size],
+        })
+        frames_dir = self.dir / "frames" / id
+        frames_dir.mkdir(parents=True)
+        px = size * self.scale
+        for i in range(len(states)):
+            knob_frame(px, 180 * i).save(frames_dir / f"{id}_{i:04d}.png")
+        return self
+
     def backplate(self, size=None):
         w, h = size or [d * self.scale for d in PANEL]
         Image.new("RGBA", (w, h), (90, 90, 95, 255)).save(self.dir / "backplate.png")
@@ -207,6 +220,18 @@ class PackTest(unittest.TestCase):
         border = [strip.getpixel((x, 0))[3] for x in range(40)] + [strip.getpixel((0, y))[3] for y in range(120)]
         self.assertEqual(max(border), 0)
         self.assertEqual(strip.getpixel((20, 20)), frames[0].getpixel((20, 20)))  # the Knob itself is untouched
+
+    def test_lists_a_toggles_states_in_the_manifest(self):
+        out = Render(self.root).toggle("mode", states=["compress", "limit"]).write()
+        [mode] = pack.pack(out)["components"]
+        self.assertEqual(mode["file"], "toggle_mode_2f_1x.png")
+        self.assertEqual(mode["states"], ["compress", "limit"])
+        self.assertNotIn("angles", mode)
+
+    def test_rejects_a_frame_count_that_differs_from_the_states(self):
+        out = Render(self.root).toggle("mode", states=["down", "middle", "up"]).write()
+        (out / "frames" / "mode" / "mode_0002.png").unlink()
+        self.assertPackFails(out, "mode: 2 Frames, expected 3")
 
     def test_no_warnings_for_a_normal_filmstrip(self):
         out = Render(self.root).knob("gain", linear(-150, 150, 8)).write()

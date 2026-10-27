@@ -191,6 +191,9 @@ def top(root):
 
 
 def frame_angles(comp, quality):
+    if "angles" in comp:
+        # A Stepped Knob: its few positions, every one in a Draft too.
+        return list(comp["angles"])
     start, end = comp.get("angle", [-150, 150])
     count = comp.get("frames", 128)
     if quality != "final":
@@ -203,22 +206,28 @@ def frame_angles(comp, quality):
     return [start + (end - start) * i / (count - 1) for i in range(count)]
 
 
-def render_component(scene, camera, spec, comp, root, rect, out_dir, scale, quality):
+def frame_values(comp, quality):
+    """What each Frame shows: ("angles", [...]) for a Knob, ("states", [...]) for a Toggle or Lamp."""
+    if comp["type"] == "knob":
+        return "angles", frame_angles(comp, quality)
+    return "states", comp.get("states", ["off", "on"])
+
+
+def render_component(scene, camera, spec, comp, pose, rect, out_dir, scale, quality):
     """Render one Component's Frames; return its entry for render.json."""
     frame_camera(camera, scene, spec, rect, scale)
     frames_dir = out_dir / "frames" / comp["id"]
     frames_dir.mkdir(parents=True, exist_ok=True)
-    angles = frame_angles(comp, quality)
-    for i, angle in enumerate(angles):
-        # Spec angles are clockwise from 12 o'clock as seen on screen; Blender's +Z rotation is counter-clockwise.
-        root.rotation_euler.z = -math.radians(angle)
+    key, values = frame_values(comp, quality)
+    for i, value in enumerate(values):
+        pose(value)
         scene.render.filepath = str(frames_dir / f"{comp['id']}_{i:04d}.png")
         bpy.ops.render.render(write_still=True)
     return {
         "id": comp["id"],
         "type": comp["type"],
         "bipolar": bool(comp.get("bipolar")),
-        "angles": angles,
+        key: values,
         "bounds": rect,
     }
 
@@ -248,11 +257,10 @@ def main():
     wear = spec.get("wear", 0.3)
     groups = {"backplate": build_backplate(spec, wear)}
     rects = {}
-    roots = {}
+    poses = {}
     for comp in spec["components"]:
-        root, extent = BUILDERS[comp["type"]](spec, comp, wear)
+        root, extent, poses[comp["id"]] = BUILDERS[comp["type"]](spec, comp, wear)
         rects[comp["id"]] = frame_rect(comp, extent, top(root), toward_light)
-        roots[comp["id"]] = root
         groups[comp["id"]] = [root, *root.children_recursive, shadow_catcher(spec, rects[comp["id"]])]
 
     unblock_fill([obj for name, objects in groups.items() if name != "backplate" for obj in objects])
@@ -264,7 +272,7 @@ def main():
     rendered = []
     for comp in spec["components"]:
         show_only(groups, comp["id"])
-        rendered.append(render_component(scene, camera, spec, comp, roots[comp["id"]], rects[comp["id"]],
+        rendered.append(render_component(scene, camera, spec, comp, poses[comp["id"]], rects[comp["id"]],
                                          out_dir, scale, quality))
 
     # What tools/pack.py checks the Frames against.
