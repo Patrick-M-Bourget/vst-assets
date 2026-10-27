@@ -12,7 +12,7 @@ import bmesh
 import bpy
 
 import materials
-from parts import PX, frustum, meter_pivot, new_object, panel_to_world, scale_marks, soften
+from parts import PX, frustum, meter_pivot, new_object, panel_to_world, prism, scale_marks, soften
 
 FONTS = Path(__file__).resolve().parent.parent / "fonts"
 FONT_FILES = {"book": "Jost-400-Book.ttf", "medium": "Jost-500-Medium.ttf", "bold_italic": "Jost-700-BoldItalic.ttf"}
@@ -47,6 +47,10 @@ def build_backplate(spec, wear):
     ink = materials.make("paint_white", wear, INK)
     for pos in panel.get("screws", []):
         objects += panel_screw(spec, pos, steel, ink)
+    if panel.get("trims"):
+        nickel = materials.make("nickel", wear)
+        for pos in panel["trims"]:
+            objects += trim(spec, pos, nickel, steel, ink)
 
     if panel.get("hinge"):
         objects += hinge(spec, ear, steel)
@@ -110,6 +114,22 @@ def panel_screw(spec, pos, steel, ink, radius=4.5):
     for obj in (head, slot):
         obj.location.x, obj.location.y = x, y
     return [head, slot]
+
+
+def trim(spec, pos, nut_mat, steel, ink, across_flats=26):
+    """A trimmer adjusted with a screwdriver: a hex bushing with a slotted
+    screw sunk in its middle, as beside an LA-2A's Limit/Compress switch."""
+    r = across_flats / 2 / math.cos(math.radians(30)) * PX
+    hexagon = [(r * math.cos(math.radians(60 * i)), r * math.sin(math.radians(60 * i))) for i in range(6)]
+    nut = prism("trim_nut", hexagon, 0, 5 * PX)
+    soften(nut, 0.8 * PX, segments=3)
+    nut.data.materials.append(nut_mat)
+    x, y = panel_to_world(spec, *pos)
+    nut.location.xy = (x, y)
+    screw, slot = panel_screw(spec, pos, steel, ink, radius=7)
+    for obj in (screw, slot):
+        obj.location.z += 5 * PX
+    return [nut, screw, slot]
 
 
 def hinge(spec, ear, steel):
