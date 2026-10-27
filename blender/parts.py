@@ -1,9 +1,11 @@
 """Procedural Component generators.
 
 Each builder makes one Component at the scene origin, moves it to its
-place on the Panel, and returns (root object, Frame size in 1x px, pose).
-Everything is parented to the root. pose(value) sets the Component to what
-one Frame shows: a Knob's angle, or a Toggle's or Lamp's State.
+place on the Panel, and returns (root object, extent, pose). Everything is
+parented to the root. The extent is the Frame's size in 1x px, or for a part
+not centred on `pos`, its reach (left, top, right, bottom) from `pos`.
+pose(value) sets the Component to what one Frame shows: a Knob's angle, or
+a Toggle's or Lamp's State.
 """
 
 import math
@@ -218,4 +220,81 @@ def box(name, width, length, at):
     return new_object(name, bm)
 
 
-BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp}
+def scale_marks(comp):
+    """A Component's Scale Marks as [{"value", "angle"}]: a VU Meter lists its
+    angles, a Knob spreads its values evenly over its turn."""
+    marks = comp.get("scale_marks")
+    if not marks:
+        return []
+    if "marks" in marks:
+        return [{"value": v, "angle": a} for v, a in marks["marks"]]
+    start, end = comp.get("angle", [-150, 150])
+    values = marks["values"]
+    return [{"value": str(v), "angle": start + (end - start) * i / (len(values) - 1)} for i, v in enumerate(values)]
+
+
+def meter_pivot(spec, comp):
+    """A VU Meter's needle pivot, in 1x Panel px: below the window, behind the bezel."""
+    (x, y), (dx, dy) = comp["pos"], comp["pivot"]
+    return x + dx, y + dy
+
+
+def build_vu_meter(spec, comp, wear):
+    """A VU Meter's needle, turning on a pivot hidden behind the bezel. Its
+    face is printed on the Backplate and its bezel and glass are an Overlay."""
+    length = (comp["scale_marks"]["radius"] + 4) * PX
+    hub = frustum(f"{comp['id']}_hub", 2.5 * PX, 2.5 * PX, 0, 3 * PX, segments=32)
+    needle = box(f"{comp['id']}_needle", comp.get("needle_width", 1.0) * PX, length, (0, length / 2, 3 * PX))
+    ink = materials.make("bakelite_black", wear)
+    for obj in (hub, needle):
+        obj.data.materials.append(ink)
+    needle.parent = hub
+    hub.location.xy = panel_to_world(spec, *meter_pivot(spec, comp))
+
+    start, end = comp.get("angle", [-45, 45])
+    reach = length / PX * max(abs(math.sin(math.radians(start))), abs(math.sin(math.radians(end))))
+    px, py = meter_pivot(spec, comp)
+    x, y = comp["pos"]
+    extent = (x - px + reach, y - py + length / PX, px - x + reach, py - y + 3)
+
+    def pose(angle):
+        hub.rotation_euler.z = -math.radians(angle)
+
+    return hub, extent, pose
+
+
+def build_vu_overlay(spec, comp, wear):
+    """A VU Meter's bezel and glass: everything drawn above its needle. Returns
+    (objects, extent) like a builder's."""
+    w, h = (d * PX for d in comp["size"])
+    ww, wh = (d * PX for d in comp["window"])
+    top, inset, lip = 9 * PX, 5 * PX, 1 * PX
+    # Four rectangular loops, outside in: the bezel's outer wall, its flat top, and a bevel down to the window.
+    loops = [(w / 2, h / 2, 0), (w / 2, h / 2, top), (w / 2 - inset, h / 2 - inset, top), (ww / 2, wh / 2, lip)]
+    bm = bmesh.new()
+    rings = [[bm.verts.new((sx * hx, sy * hy, z)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+             for hx, hy, z in loops]
+    for a, b in zip(rings, rings[1:]):
+        for i in range(4):
+            bm.faces.new((a[i], a[(i + 1) % 4], b[(i + 1) % 4], b[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bezel = new_object(f"{comp['id']}_bezel", bm)
+    bezel.data.materials.append(materials.make("bezel_grey", wear))
+    soften(bezel, 0.8 * PX, segments=3, angle_deg=30)
+
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5)
+    bmesh.ops.scale(bm, vec=(ww + 2 * PX, wh + 2 * PX, 1), verts=bm.verts)
+    glass = new_object(f"{comp['id']}_glass", bm)
+    glass.location.z = 4.5 * PX
+    glass.data.materials.append(materials.make("glass", wear))
+    glass.visible_shadow = False  # a sheet of glass barely darkens what's behind it
+
+    for obj in (bezel, glass):
+        obj.location.xy = panel_to_world(spec, *comp["pos"])
+    half_w, half_h = (d / 2 for d in comp["size"])
+    return [bezel, glass], (half_w, half_h, half_w, half_h)
+
+
+BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp, "vu_meter": build_vu_meter}
+OVERLAY_BUILDERS = {"vu_meter": build_vu_overlay}

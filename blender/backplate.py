@@ -1,5 +1,5 @@
 """The Backplate: the Panel's plate, rack ears, screws, hinge and printed
-labels, including each Knob's Scale Marks (ADR 0002).
+labels, including each Knob's Scale Marks and each VU Meter's face (ADR 0002).
 
 Everything here is static and rendered once, into the Backplate. The plate's
 face is at z = 0; parts mounted on it sit above.
@@ -8,14 +8,17 @@ face is at z = 0; parts mounted on it sit above.
 import math
 from pathlib import Path
 
+import bmesh
 import bpy
 
 import materials
-from parts import PX, frustum, new_object, panel_to_world, soften
+from parts import PX, frustum, meter_pivot, new_object, panel_to_world, scale_marks, soften
 
 FONTS = Path(__file__).resolve().parent.parent / "fonts"
 FONT_FILES = {"book": "Jost-400-Book.ttf", "medium": "Jost-500-Medium.ttf", "bold_italic": "Jost-700-BoldItalic.ttf"}
 INK = "#262626"
+RED_INK = "#b3261e"
+FACE_Z = 0.3  # px: a VU Meter's face sits just proud of the plate
 PLATE_THICKNESS = 4  # px
 
 
@@ -145,9 +148,10 @@ def font(name):
     return _fonts[name]
 
 
-def text(spec, label, wear, angle_deg=0.0):
+def text(spec, label, wear, angle_deg=0.0, z=0.0):
     """Printed text centred on `pos`, `size` px tall (cap height), turned
-    clockwise by `angle_deg`. Silkscreen: a very thin raised layer of paint."""
+    clockwise by `angle_deg`, on a surface `z` px above the plate.
+    Silkscreen: a very thin raised layer of paint."""
     curve = bpy.data.curves.new(f"text_{label['text']}", "FONT")
     curve.body = label["text"]
     curve.font = font(label.get("font", "medium"))
@@ -159,14 +163,16 @@ def text(spec, label, wear, angle_deg=0.0):
     obj = bpy.data.objects.new(curve.name, curve)
     bpy.context.scene.collection.objects.link(obj)
     x, y = panel_to_world(spec, *label["pos"])
-    obj.location = (x, y, 0.08 * PX)
+    obj.location = (x, y, (z + 0.08) * PX)
     obj.rotation_euler.z = -math.radians(angle_deg)
     curve.materials.append(materials.make("paint_white", wear, label.get("color", INK)))
     return obj
 
 
 def component_print(spec, comp, wear):
-    """A Component's label and Scale Marks, printed on the Backplate."""
+    """A Component's label and Scale Marks, printed on the Backplate, or a VU Meter's face."""
+    if comp["type"] == "vu_meter":
+        return meter_face(spec, comp, wear)
     objects = []
     cx, cy = comp["pos"]
     if "label" in comp:
@@ -174,12 +180,87 @@ def component_print(spec, comp, wear):
         dx, dy = label.pop("offset", [0, 0])
         objects.append(text(spec, {**label, "pos": [cx + dx, cy + dy]}, wear))
     marks = comp.get("scale_marks")
-    if marks:
-        start, end = comp.get("angle", [-150, 150])
-        values = marks["values"]
-        for i, value in enumerate(values):
-            angle = start + (end - start) * i / (len(values) - 1)
-            a = math.radians(angle)
-            pos = [cx + marks["radius"] * math.sin(a), cy - marks["radius"] * math.cos(a)]
-            objects.append(text(spec, {"text": str(value), "pos": pos, "size": marks.get("size", 8)}, wear, angle))
+    for mark in scale_marks(comp):
+        a = math.radians(mark["angle"])
+        pos = [cx + marks["radius"] * math.sin(a), cy - marks["radius"] * math.cos(a)]
+        objects.append(text(spec, {"text": mark["value"], "pos": pos, "size": marks.get("size", 8)}, wear, mark["angle"]))
     return objects
+
+
+def meter_face(spec, comp, wear):
+    """A VU Meter's backlit face: an arc, black up to `red_from` and a thick
+    red band after it, a tick and a number at each Scale Mark, an inner ring
+    of numbers, and labels such as "VU"."""
+    face = comp.get("face", {})
+    marks = comp["scale_marks"]
+    radius, red_from = marks["radius"], marks.get("red_from", float("inf"))
+    pivot = meter_pivot(spec, comp)
+    black = materials.make("paint_white", wear, INK)
+    red = materials.make("paint_white", wear, RED_INK)
+
+    # The face reaches a little under the bezel, so no edge shows in the window.
+    w, h = (d + 8 for d in comp["window"])
+    plate = slab(spec, f"{comp['id']}_face", (comp["pos"][0] - w / 2, comp["pos"][1] - h / 2,
+                                               comp["pos"][0] + w / 2, comp["pos"][1] + h / 2),
+                 materials.make("meter_face", wear, face.get("color")))
+    plate.scale.z = FACE_Z / PLATE_THICKNESS
+    plate.location.z = FACE_Z / 2 * PX
+    glow = plate.data.materials[0].node_tree.nodes["Principled BSDF"]
+    # Always lit from behind.
+    glow.inputs["Emission Color"].default_value = glow.inputs["Base Color"].default_value
+    glow.inputs["Emission Strength"].default_value = face.get("glow", 0.25)
+    objects = [plate]
+
+    ticks = scale_marks(comp)
+    first, last = ticks[0]["angle"], ticks[-1]["angle"]
+    objects.append(arc(spec, pivot, radius, 0.8, first, min(red_from, last), black))
+    if red_from < last:
+        objects.append(arc(spec, pivot, radius + 1.2, 3.2, red_from, last, red))
+    for mark in ticks:
+        ink = red if mark["angle"] >= red_from else black
+        objects.append(tick(spec, pivot, radius, 4.5, mark["angle"], ink))
+        objects.append(text(spec, {"text": mark["value"], "pos": polar(pivot, radius + 10, mark["angle"]),
+                                   "size": marks.get("size", 6), "color": RED_INK if ink is red else INK},
+                            wear, mark["angle"], FACE_Z))
+    inner = comp.get("inner_marks")
+    if inner:
+        for value, angle in inner["marks"]:
+            objects.append(text(spec, {"text": value, "pos": polar(pivot, inner["radius"], angle),
+                                       "size": inner.get("size", 4.5)}, wear, angle, FACE_Z))
+    for label in face.get("labels", []):
+        label = dict(label)
+        dx, dy = label.pop("offset")
+        objects.append(text(spec, {**label, "pos": [comp["pos"][0] + dx, comp["pos"][1] + dy]}, wear, 0, FACE_Z))
+    return objects
+
+
+def polar(centre, radius, angle_deg):
+    """The 1x Panel point `radius` px from `centre` at `angle_deg` clockwise from 12 o'clock."""
+    a = math.radians(angle_deg)
+    return [centre[0] + radius * math.sin(a), centre[1] - radius * math.cos(a)]
+
+
+def arc(spec, centre, radius, width, start_deg, end_deg, mat):
+    """A printed band `width` px wide along a circle on the meter face."""
+    bm = bmesh.new()
+    steps = max(2, int(abs(end_deg - start_deg)))
+    rows = []
+    for i in range(steps + 1):
+        angle = start_deg + (end_deg - start_deg) * i / steps
+        rows.append([bm.verts.new((*panel_to_world(spec, *polar(centre, r, angle)), (FACE_Z + 0.05) * PX))
+                     for r in (radius - width / 2, radius + width / 2)])
+    for (a0, a1), (b0, b1) in zip(rows, rows[1:]):
+        bm.faces.new((a0, a1, b1, b0))
+    obj = new_object("meter_arc", bm)
+    obj.data.materials.append(mat)
+    return obj
+
+
+def tick(spec, centre, radius, length, angle_deg, mat):
+    """A tick standing out from the arc at `angle_deg`."""
+    obj = box_obj("meter_tick", (0.8 * PX, length * PX, 0.1 * PX))
+    x, y = panel_to_world(spec, *polar(centre, radius + length / 2, angle_deg))
+    obj.location = (x, y, (FACE_Z + 0.05) * PX)
+    obj.rotation_euler.z = -math.radians(angle_deg)
+    obj.data.materials.append(mat)
+    return obj

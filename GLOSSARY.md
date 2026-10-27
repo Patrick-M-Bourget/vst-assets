@@ -28,6 +28,10 @@ _Avoid_: Switch (alone), button
 A jewel pilot light: faceted coloured glass in a bezel, dark in its first State and lit in its last.
 _Avoid_: LED, indicator
 
+**VU Meter**:
+A needle meter in three layers: its face (arc, ticks, numbers) printed on the Backplate from its Scale Marks, its needle as a Filmstrip turning on a pivot hidden behind the bezel, and its bezel and glass as an Overlay. Always lit.
+_Avoid_: Meter (alone), gauge
+
 **State**:
 The named position a Toggle or Lamp shows in one Frame, such as `off` and `on`, listed in the Spec's `states` and the Manifest. A Knob's Frames are angles instead.
 

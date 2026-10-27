@@ -5,7 +5,8 @@
 Builds the scene from scratch (ADR 0005), with one orthographic camera
 looking straight down at the Panel and one shared light rig, then renders
 the Backplate into out/<name>/backplate.png and each Component's Frames
-into out/<name>/frames/<id>/. Each Frame carries the Component's own
+into out/<name>/frames/<id>/, and Overlays such as a VU Meter's bezel and
+glass into out/<name>/overlays/. Each Frame and Overlay carries its own
 shadow, caught on an invisible floor (ADR 0007). It records what it
 rendered in out/<name>/render.json for tools/pack.py to check against.
 
@@ -24,7 +25,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from backplate import build_backplate  # noqa: E402
-from parts import BUILDERS, PX, panel_to_world  # noqa: E402
+from parts import BUILDERS, OVERLAY_BUILDERS, PX, panel_to_world, scale_marks  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 DRAFT_MAX_FRAMES = 16
@@ -57,6 +58,8 @@ def set_quality(scene, quality):
     scene.render.engine = "CYCLES"
     scene.cycles.samples = 128 if quality == "final" else 16
     scene.cycles.use_denoising = True
+    # Glass shows only its reflections in the alpha, so what's under an Overlay shows through.
+    scene.cycles.film_transparent_glass = True
     prefs = bpy.context.preferences.addons["cycles"].preferences
     prefs.compute_device_type = "METAL"
     prefs.get_devices()
@@ -157,18 +160,19 @@ def frame_camera(camera, scene, spec, rect, scale):
 
 def frame_rect(comp, extent, height, toward_light):
     """The 1x px rectangle a Component's Frames cover: the part itself at any
-    angle, plus its shadow, which falls away from the light. Whole pixels, so
-    Frames line up with the Backplate's pixels."""
+    angle, plus its shadow, which falls away from the light. `extent` is a
+    size centred on `pos`, or a reach (left, top, right, bottom) from it.
+    Whole pixels, so Frames line up with the Backplate's pixels."""
     margin = comp.get("margin", 4)
     # A point `height` above the Panel casts its shadow this far, in px; Panel y grows downward.
     run = height / toward_light.z
     shadow_x, shadow_y = -toward_light.x * run, toward_light.y * run
-    half = extent / 2 + margin
+    left, top_, right, bottom = (extent / 2,) * 4 if isinstance(extent, (int, float)) else extent
     x, y = comp["pos"]
-    x0 = math.floor(x - half + min(0, shadow_x))
-    y0 = math.floor(y - half + min(0, shadow_y))
-    x1 = math.ceil(x + half + max(0, shadow_x))
-    y1 = math.ceil(y + half + max(0, shadow_y))
+    x0 = math.floor(x - left - margin + min(0, shadow_x))
+    y0 = math.floor(y - top_ - margin + min(0, shadow_y))
+    x1 = math.ceil(x + right + margin + max(0, shadow_x))
+    y1 = math.ceil(y + bottom + margin + max(0, shadow_y))
     return [x0, y0, x1 - x0, y1 - y0]
 
 
@@ -184,10 +188,9 @@ def shadow_catcher(spec, rect):
     return floor
 
 
-def top(root):
-    """How high a Component stands above the Panel, in 1x px."""
-    return max((obj.matrix_world @ Vector(corner)).z for obj in [root, *root.children_recursive]
-               for corner in obj.bound_box) / PX
+def top(objects):
+    """How high the highest of `objects` stands above the Panel, in 1x px."""
+    return max((obj.matrix_world @ Vector(corner)).z for obj in objects for corner in obj.bound_box) / PX
 
 
 def frame_angles(comp, quality):
@@ -208,7 +211,7 @@ def frame_angles(comp, quality):
 
 def frame_values(comp, quality):
     """What each Frame shows: ("angles", [...]) for a Knob, ("states", [...]) for a Toggle or Lamp."""
-    if comp["type"] == "knob":
+    if comp["type"] in ("knob", "vu_meter"):
         return "angles", frame_angles(comp, quality)
     return "states", comp.get("states", ["off", "on"])
 
@@ -223,13 +226,16 @@ def render_component(scene, camera, spec, comp, pose, rect, out_dir, scale, qual
         pose(value)
         scene.render.filepath = str(frames_dir / f"{comp['id']}_{i:04d}.png")
         bpy.ops.render.render(write_still=True)
-    return {
+    entry = {
         "id": comp["id"],
         "type": comp["type"],
         "bipolar": bool(comp.get("bipolar")),
         key: values,
         "bounds": rect,
     }
+    if comp.get("scale_marks"):
+        entry["scale_marks"] = scale_marks(comp)
+    return entry
 
 
 def show_only(groups, visible):
@@ -254,14 +260,22 @@ def main():
 
     # Frames left from an earlier Render would be packed as if they were new.
     shutil.rmtree(out_dir / "frames", ignore_errors=True)
+    shutil.rmtree(out_dir / "overlays", ignore_errors=True)
     wear = spec.get("wear", 0.3)
     groups = {"backplate": build_backplate(spec, wear)}
     rects = {}
     poses = {}
+    overlays = {}
     for comp in spec["components"]:
         root, extent, poses[comp["id"]] = BUILDERS[comp["type"]](spec, comp, wear)
-        rects[comp["id"]] = frame_rect(comp, extent, top(root), toward_light)
-        groups[comp["id"]] = [root, *root.children_recursive, shadow_catcher(spec, rects[comp["id"]])]
+        parts = [root, *root.children_recursive]
+        rects[comp["id"]] = frame_rect(comp, extent, top(parts), toward_light)
+        groups[comp["id"]] = [*parts, shadow_catcher(spec, rects[comp["id"]])]
+        if comp["type"] in OVERLAY_BUILDERS:
+            parts, extent = OVERLAY_BUILDERS[comp["type"]](spec, comp, wear)
+            overlay_id = f"{comp['id']}_glass"
+            overlays[overlay_id] = frame_rect(comp, extent, top(parts), toward_light)
+            groups[overlay_id] = [*parts, shadow_catcher(spec, overlays[overlay_id])]
 
     unblock_fill([obj for name, objects in groups.items() if name != "backplate" for obj in objects])
     show_only(groups, "backplate")
@@ -275,6 +289,12 @@ def main():
         rendered.append(render_component(scene, camera, spec, comp, poses[comp["id"]], rects[comp["id"]],
                                          out_dir, scale, quality))
 
+    for overlay_id, rect in overlays.items():
+        show_only(groups, overlay_id)
+        frame_camera(camera, scene, spec, rect, scale)
+        scene.render.filepath = str(out_dir / "overlays" / f"{overlay_id}.png")
+        bpy.ops.render.render(write_still=True)
+
     # What tools/pack.py checks the Frames against.
     record = {
         "name": spec["name"],
@@ -282,6 +302,7 @@ def main():
         "scale": scale,
         "panel": {"size": spec["panel"]["size"]},
         "components": rendered,
+        "overlays": [{"id": overlay_id, "bounds": rect} for overlay_id, rect in overlays.items()],
     }
     (out_dir / "render.json").write_text(json.dumps(record, indent=2) + "\n")
 
