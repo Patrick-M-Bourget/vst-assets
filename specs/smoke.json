@@ -1,0 +1,9 @@
+{
+  "name": "smoke",
+  "panel": { "size": [200, 200], "scale": 2 },
+  "light": { "key_angle_deg": 45, "hdri": "studio.exr" },
+  "components": [
+    { "id": "gain", "type": "knob", "pos": [100, 100], "diameter": 80, "frames": 2, "angle": [-150, 150] }
+  ],
+  "quality": "draft"
+}
