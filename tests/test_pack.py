@@ -34,11 +34,12 @@ class Render:
         self.scale = scale
         self.record = {"name": "test", "quality": "draft", "scale": scale, "panel": {"size": PANEL}, "components": []}
 
-    def knob(self, id, angles, size=40, pos=(50, 50), bipolar=False, frames=None):
+    def knob(self, id, angles, size=40, pos=(50, 50), bipolar=False, frames=None, scale_marks=None):
         x, y = pos
         self.record["components"].append({
             "id": id, "type": "knob", "bipolar": bipolar, "angles": angles,
             "bounds": [x - size / 2, y - size / 2, size, size],
+            **({"scale_marks": scale_marks} if scale_marks else {}),
         })
         frames_dir = self.dir / "frames" / id
         frames_dir.mkdir(parents=True)
@@ -65,11 +66,11 @@ class Render:
         Image.new("RGBA", (w, h), (90, 90, 95, 255)).save(self.dir / "backplate.png")
         return self
 
-    def overlay(self, id, size=20, pos=(150, 50)):
+    def overlay(self, id, size=20, pos=(150, 50), color=(255, 255, 255, 40)):
         x, y = pos
         self.record.setdefault("overlays", []).append({"id": id, "bounds": [x - size / 2, y - size / 2, size, size]})
         (self.dir / "overlays").mkdir(exist_ok=True)
-        Image.new("RGBA", (size * self.scale,) * 2, (255, 255, 255, 40)).save(self.dir / "overlays" / f"{id}.png")
+        Image.new("RGBA", (size * self.scale,) * 2, color).save(self.dir / "overlays" / f"{id}.png")
         return self
 
     def write(self):
@@ -137,6 +138,19 @@ class PackTest(unittest.TestCase):
         manifest = pack.pack(out)
         self.assertTrue((out / "final" / "overlay_vu_glass_2x.png").exists())
         self.assertEqual(manifest["overlays"], [{"id": "vu_glass", "file": "overlay_vu_glass_2x.png", "bounds": [140, 40, 20, 20]}])
+
+    def test_contact_sheet_draws_overlays_above_the_filmstrips(self):
+        # A VU Meter's bezel covers the foot of its needle.
+        out = (Render(self.root).knob("needle", linear(-45, 45, 4), pos=(50, 50))
+               .overlay("bezel", size=10, pos=(50, 50), color=(200, 0, 0, 255)).write())
+        pack.pack(out)
+        self.assertEqual(Image.open(out / "contact_sheet.png").getpixel((50, 50)), (200, 0, 0, 255))
+
+    def test_lists_scale_marks_in_the_manifest(self):
+        marks = [{"value": "-20", "angle": -38.6}, {"value": "0", "angle": 18.7}]
+        out = Render(self.root).knob("vu", linear(-45, 45, 4), scale_marks=marks).write()
+        [vu] = pack.pack(out)["components"]
+        self.assertEqual(vu["scale_marks"], marks)
 
     def test_rejects_a_frame_count_that_differs_from_the_render(self):
         angles = linear(-150, 150, 8)

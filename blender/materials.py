@@ -19,6 +19,9 @@ PRESETS = {
     # Toggle hardware. Part metal only, for the same reason as zinc.
     "nickel": {"color": "#c9c6bf", "metallic": 0.6, "roughness": 0.2},
     "jewel_red": {"color": "#d0201a", "roughness": 0.03, "transmission": 1.0},
+    "bezel_grey": {"color": "#3c3e40", "roughness": 0.3, "coat": 0.2},
+    "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
+    "meter_face": {"color": "#ead9a8", "roughness": 0.6},
 }
 
 

@@ -115,9 +115,9 @@ def stitch(frame_paths, feather_px):
     return strip
 
 
-def contact_sheet(record, backplate, strips):
+def contact_sheet(record, backplate, strips, overlays):
     """The Panel three times, stacked: every Component at its first, middle and
-    last Frame, cut from the Filmstrips that ship."""
+    last Frame, cut from the Filmstrips that ship, with the Overlays on top."""
     scale = record["scale"]
     w, h = (round(d * scale) for d in record["panel"]["size"])
     sheet = Image.new("RGBA", (w, h * 3), PREVIEW_BACKGROUND)
@@ -130,6 +130,9 @@ def contact_sheet(record, backplate, strips):
             frame = strip.crop((0, fh * index, strip.width, fh * (index + 1)))
             x, y = comp["bounds"][:2]
             sheet.alpha_composite(frame, (round(x * scale), round(y * scale) + h * row))
+        for overlay, image in overlays:
+            x, y = overlay["bounds"][:2]
+            sheet.alpha_composite(image, (round(x * scale), round(y * scale) + h * row))
     return sheet
 
 
@@ -200,18 +203,21 @@ def pack(out_dir):
             "frames": count,
             key: [round(a, 4) for a in values] if key == "angles" else values,
             "bounds": comp["bounds"],
+            **({"scale_marks": comp["scale_marks"]} if "scale_marks" in comp else {}),
         })
         preview_gif(frames[comp["id"]], out_dir / f"preview_{comp['id']}.gif")
 
     if record.get("overlays"):
         manifest["overlays"] = []
+    overlays = []
     for overlay in record.get("overlays", []):
         file = f"overlay_{overlay['id']}_{scale}x.png"
         shutil.copyfile(out_dir / "overlays" / f"{overlay['id']}.png", final / file)
         manifest["overlays"].append({"id": overlay["id"], "file": file, "bounds": overlay["bounds"]})
+        overlays.append((overlay, load(final / file)))
 
     (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    contact_sheet(record, backplate, strips).save(out_dir / "contact_sheet.png")
+    contact_sheet(record, backplate, strips, overlays).save(out_dir / "contact_sheet.png")
     return manifest
 
 

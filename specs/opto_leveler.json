@@ -9,7 +9,8 @@
       "VU meter: dark grey bevelled bezel, cream face, black scale with a red +1..+3 section, 'VU' at both ends, inner 0-100 scale.",
       "Switches: chrome bat toggles with hex nuts (Limit/Compress, Power). Red jewel pilot lamp as on the 1960s original.",
       "Original branding to replace: red italic wordmark with a double-line swoosh, and the manufacturer logo above the meter. Ours: a red wordmark, no swoosh, no logo.",
-      "Wear: light vintage (0.3). Labels: small plain sans-serif capitals."
+      "Wear: light vintage (0.3). Labels: small plain sans-serif capitals.",
+      "VU Scale Mark angles follow the VU law: deflection is linear in voltage, +3 VU is full scale at 45 deg and rest is -45 deg, so angle = -45 + 90 * 10^((dB - 3) / 20). The inner 0-100 ring is percent of 0 VU on the same law."
     ],
     "refs": [
       "la2a_front_clip.jpg",
@@ -87,6 +88,35 @@
         "values": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
         "radius": 60,
         "size": 11
+      }
+    },
+    {
+      "id": "vu",
+      "type": "vu_meter",
+      "pos": [550, 127],
+      "size": [226, 130],
+      "window": [180, 88],
+      "pivot": [0, 62],
+      "frames": 128,
+      "angle": [-45, 48],
+      "scale_marks": {
+        "radius": 84,
+        "size": 6,
+        "red_from": 18.7,
+        "marks": [["-20", -38.6], ["-10", -24.9], ["-7", -16.5], ["-5", -9.2], ["-3", 0.1], ["-2", 5.6],
+                  ["-1", 11.8], ["0", 18.7], ["+1", 26.5], ["+2", 35.2], ["+3", 45.0]]
+      },
+      "inner_marks": {
+        "radius": 72,
+        "size": 4.5,
+        "marks": [["0", -45.0], ["20", -32.3], ["40", -19.5], ["60", -6.8], ["80", 6.0], ["100", 18.7]]
+      },
+      "face": {
+        "labels": [
+          { "text": "VU", "offset": [-72, -26], "size": 9 },
+          { "text": "VU", "offset": [72, -26], "size": 9 },
+          { "text": "OPTO-2", "offset": [0, 22], "size": 9, "font": "bold_italic", "tracking": 1.05 }
+        ]
       }
     },
     {
