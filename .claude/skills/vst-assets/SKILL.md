@@ -9,11 +9,19 @@ One Spec in `specs/` describes one Panel. Use the words in `GLOSSARY.md`; the AD
 
 ## Loop
 
+### 0. New Panel
+
+For a Panel with no Spec yet: open a GitHub issue for it (`opto_leveler`'s is #1) and start `specs/<name>.json` from `specs/smoke.json`, with `name`, the Panel's `size` from the Refs' proportions, and `notes.refs` listing the photo files in `refs/<name>/`. Take positions and sizes from a straight-on Ref. The Panel gets our own name.
+
 ### 1. Refs → Look Brief
 
 If `refs/<name>/` has photos and they're listed in the Spec's `notes.refs`, run `python3 tools/refboard.py specs/<name>.json` and read `out/<name>/moodboard.png` plus each photo. Write `notes.look_brief`: knob family, materials, colours (from the swatches), Wear, lighting, layout. Tie every line to a Spec field, and list anything no generator covers.
 
 Done when every visible part of the Refs is either mapped to a Spec field or listed as uncovered. If the Spec needs Refs and has none, ask the user for them; Refs are needed before the first Knob is judged.
+
+### 1b. Uncovered parts
+
+A part no generator covers (`BUILDERS` in `blender/parts.py`: `knob`, `toggle`, `button`, `lamp` and `vu_meter` as of fet_limiter) is a new Component type. Don't fake it with an existing type or leave it out silently. For each one, open an issue that names the type, the Spec fields it needs, its Frames or States, and whether it needs an Overlay, then stop and ask the user whether to build it, defer it, or drop it from the Panel. Once it's built, add it to `BUILDERS`, [SPEC.md](SPEC.md) and the Component entry in `GLOSSARY.md`.
 
 ### 2. Spec
 
