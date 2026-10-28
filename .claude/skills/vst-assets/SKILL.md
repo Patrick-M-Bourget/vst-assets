@@ -21,7 +21,7 @@ Done when every visible part of the Refs is either mapped to a Spec field or lis
 
 ### 1b. Uncovered parts
 
-A part no generator covers (`BUILDERS` in `blender/parts.py` has `knob`, `toggle`, `lamp` and `vu_meter`) is a new Component type. Don't fake it with an existing type or leave it out silently. For each one, open an issue that names the type, the Spec fields it needs, its Frames or States, and whether it needs an Overlay, then stop and ask the user whether to build it, defer it, or drop it from the Panel. Once it's built, add it to `BUILDERS`, [SPEC.md](SPEC.md) and the Component entry in `GLOSSARY.md`.
+A part no generator covers (`BUILDERS` in `blender/parts.py`: `knob`, `toggle`, `button`, `lamp` and `vu_meter` as of fet_limiter) is a new Component type. Don't fake it with an existing type or leave it out silently. For each one, open an issue that names the type, the Spec fields it needs, its Frames or States, and whether it needs an Overlay, then stop and ask the user whether to build it, defer it, or drop it from the Panel. Once it's built, add it to `BUILDERS`, [SPEC.md](SPEC.md) and the Component entry in `GLOSSARY.md`.
 
 ### 2. Spec
 

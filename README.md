@@ -45,7 +45,7 @@ The `vst-assets` skill lives in this repo (`.claude/skills/vst-assets/`) and run
 
 1. Pick a short name for the Panel, such as `fet_limiter`. Put photos of the hardware in `refs/<name>/`: a straight-on front view, close-ups of the knobs, switches and meters, and one shot showing the wear. Note where each came from in `refs/<name>/SOURCES.txt`. Refs never leave your machine (ADR 0003).
 2. In Claude Code, ask for it, for example: *"Use the vst-assets skill to make a Panel called `fet_limiter` from the photos in `refs/fet_limiter/`."*
-3. Claude writes the Look Brief and the Spec, renders Drafts, and reviews them against the Moodboard. Then it shows you the Contact Sheet and close-ups, and waits for your approval before rendering the Final. If the hardware has a part with no generator yet (a fader, a push button, an LED ladder), it proposes the new Component type as an issue and waits for you before building it.
+3. Claude writes the Look Brief and the Spec, renders Drafts, and reviews them against the Moodboard. Then it shows you the Contact Sheet and close-ups, and waits for your approval before rendering the Final. If the hardware has a part with no generator yet (a fader, an LED ladder), it proposes the new Component type as an issue and waits for you before building it.
 4. After the last Gate it renders the Final, about 15 min. The files to ship land in `out/<name>/final/`; commit them to `assets/<name>/` as was done for `opto_leveler`.
 
 Clones copy the look, never the brand: the Panel gets its own name, and no third-party names or logos appear in any render (ADR 0004).
