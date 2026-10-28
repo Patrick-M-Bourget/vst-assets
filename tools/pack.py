@@ -8,6 +8,10 @@ Filmstrip per Component, the Backplate, the Overlays and manifest.json, and
 into out/<name>/ the Contact Sheet, a preview GIF per Component, and, when
 the Spec lists Refs, compare.png: the Contact Sheet beside the moodboard.
 
+For a Spec with `"target": "reason"` it also writes out/<name>/final/GUI2D/:
+the four backdrops, every Filmstrip and Overlay under its Rack Extension
+name, and device_2D.lua (ADR 0008).
+
 Exits 1, listing every problem, when the Frames don't match render.json.
 """
 
@@ -18,6 +22,7 @@ from pathlib import Path
 
 from PIL import Image, ImageChops
 
+import reason
 import refboard
 
 MAX_TEXTURE = 16384
@@ -184,6 +189,8 @@ def pack(out_dir):
     for overlay in record.get("overlays", []):
         size = round(overlay["bounds"][2] * scale), round(overlay["bounds"][3] * scale)
         errors += check_image(out_dir / "overlays" / f"{overlay['id']}.png", size)
+    for side, size in record.get("backdrops", {}).items():
+        errors += check_image(out_dir / f"backdrop_{side}.png", tuple(round(d * scale) for d in size))
     if errors:
         raise PackError(errors)
 
@@ -236,6 +243,8 @@ def pack(out_dir):
         manifest["overlays"].append({"id": overlay["id"], "file": file, "bounds": overlay["bounds"]})
         overlays.append((overlay, load(final / file)))
 
+    if record.get("target") == "reason":
+        gui2d(out_dir, final, record, manifest)
     (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     sheet = contact_sheet(record, backplate, strips, overlays)
     sheet.save(out_dir / "contact_sheet.png")
@@ -245,6 +254,24 @@ def pack(out_dir):
             side_by_side.save(out_dir / "compare.png")
         (final / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
+
+
+def gui2d(out_dir, final, record, manifest):
+    """A Rack Extension's GUI2D folder: the backdrops under Reason's usual
+    names, each Filmstrip and Overlay without its scale suffix, and
+    device_2D.lua placing them. Adds the backdrops to the Manifest."""
+    folder = final / "GUI2D"
+    folder.mkdir()
+    sources = {"front": out_dir / "backplate.png",
+               **{side: out_dir / f"backdrop_{side}.png" for side in record.get("backdrops", {})}}
+    manifest["target"] = "reason"
+    manifest["backdrops"] = {}
+    for side, name in reason.BACKDROPS.items():
+        shutil.copyfile(sources[side], folder / f"{name}.png")
+        manifest["backdrops"][side] = {"file": f"{name}.png"}
+    for item in manifest["components"] + manifest.get("overlays", []):
+        shutil.copyfile(final / item["file"], folder / f"{reason.image_name(item['file'])}.png")
+    (folder / "device_2D.lua").write_text(reason.device_2d(manifest))
 
 
 def main():

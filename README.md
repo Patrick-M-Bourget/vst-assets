@@ -24,6 +24,8 @@ python3 tools/pack.py out/<name>
 
 A Draft (16 samples, 1×, at most 16 frames) by default; `--final` renders with Cycles at the spec's scale. Output goes to `out/<name>/`, and the files to ship to `out/<name>/final/`.
 
+A spec with `"target": "reason"` renders a Reason Rack Extension GUI instead: front, back and folded panels at Reason's sizes, and `out/<name>/final/GUI2D/` with the images and `device_2D.lua` (ADR 0008). `specs/reason_smoke.json` is a small example.
+
 ## Refs
 
 Put reference photos in `refs/<name>/` (never committed) and list their file names in the spec's `notes.refs`. Then:

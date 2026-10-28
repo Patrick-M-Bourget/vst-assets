@@ -28,6 +28,8 @@ from backplate import build_backplate  # noqa: E402
 from parts import BUILDERS, OVERLAY_BUILDERS, PX, panel_to_world, scale_marks, states  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+import reason  # noqa: E402
 DRAFT_MAX_FRAMES = 16
 
 
@@ -249,7 +251,13 @@ def main():
     spec_path, final = parse_args()
     spec = json.loads(spec_path.read_text())
     quality = "final" if final else "draft"
-    scale = spec["panel"].get("scale", 2) if quality == "final" else 1
+    target = spec.get("target", "juce")
+    if target == "reason":
+        errors = reason.check_spec(spec)
+        if errors:
+            sys.exit("not a Reason Spec (ADR 0008):\n  " + "\n  ".join(errors))
+    full = reason.SCALE if target == "reason" else spec["panel"].get("scale", 2)
+    scale = full if quality == "final" else 1
     out_dir = REPO / "out" / spec["name"]
 
     scene = reset_scene()
@@ -295,14 +303,29 @@ def main():
         scene.render.filepath = str(out_dir / "overlays" / f"{overlay_id}.png")
         bpy.ops.render.render(write_still=True)
 
+    # A Rack Extension also needs a back panel and the two folded strips:
+    # plate, screws and labels in the front's finish, no Components.
+    backdrops = {}
+    if target == "reason":
+        for side in ("back", "folded_front", "folded_back"):
+            side_spec = {**spec, "panel": reason.backdrop_panel(spec, side), "components": []}
+            groups[side] = build_backplate(side_spec, wear)
+            show_only(groups, side)
+            frame_camera(camera, scene, side_spec, [0, 0, *side_spec["panel"]["size"]], scale)
+            scene.render.filepath = str(out_dir / f"backdrop_{side}.png")
+            bpy.ops.render.render(write_still=True)
+            backdrops[side] = side_spec["panel"]["size"]
+
     # What tools/pack.py checks the Frames against.
     record = {
         "name": spec["name"],
+        "target": target,
         "quality": quality,
         "scale": scale,
         "panel": {"size": spec["panel"]["size"]},
         "components": rendered,
         "overlays": [{"id": overlay_id, "bounds": rect} for overlay_id, rect in overlays.items()],
+        **({"backdrops": backdrops} if backdrops else {}),
         # Where this machine keeps the Refs, for compare.png (ADR 0003: never committed).
         "refs": [str(REPO / "refs" / spec["name"] / ref) for ref in spec.get("notes", {}).get("refs", [])],
     }

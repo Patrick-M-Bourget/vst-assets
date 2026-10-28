@@ -73,6 +73,14 @@ class Render:
         Image.new("RGBA", (size * self.scale,) * 2, color).save(self.dir / "overlays" / f"{id}.png")
         return self
 
+    def reason(self, sizes):
+        """A reason-target Render: the extra backdrops beside the front Backplate."""
+        self.record["target"] = "reason"
+        self.record["backdrops"] = sizes
+        for side, (w, h) in sizes.items():
+            Image.new("RGBA", (w * self.scale, h * self.scale), (20, 20, 20, 255)).save(self.dir / f"backdrop_{side}.png")
+        return self
+
     def refs(self, paths):
         self.record["refs"] = [str(p) for p in paths]
         return self
@@ -275,6 +283,54 @@ class PackTest(unittest.TestCase):
     def test_no_warnings_for_a_normal_filmstrip(self):
         out = Render(self.root).knob("gain", linear(-150, 150, 8)).write()
         self.assertEqual(pack.pack(out)["warnings"], [])
+
+
+
+class ReasonPackTest(unittest.TestCase):
+    SIDES = {"back": PANEL, "folded_front": [200, 30], "folded_back": [200, 30]}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def render(self):
+        r = Render(self.root, scale=2).knob("gain", linear(-150, 150, 4), pos=(60, 40)).backplate()
+        r.dir.mkdir(parents=True, exist_ok=True)
+        return r.overlay("glass").reason(self.SIDES).write()
+
+    def test_writes_the_gui2d_folder(self):
+        out = self.render()
+        pack.pack(out)
+        gui = out / "final" / "GUI2D"
+        self.assertEqual(sorted(p.name for p in gui.iterdir()), [
+            "Panel_Back.png", "Panel_Folded_Back.png", "Panel_Folded_Front.png", "Panel_Front.png",
+            "device_2D.lua", "knob_gain_4f.png", "overlay_glass.png"])
+        self.assertEqual(Image.open(gui / "Panel_Folded_Front.png").size, (400, 60))
+        lua = (gui / "device_2D.lua").read_text()
+        self.assertIn('{ path = "knob_gain_4f", frames = 4 }', lua)
+        self.assertIn("offset = { 80, 40 }", lua)
+
+    def test_the_manifest_lists_the_backdrops(self):
+        out = self.render()
+        manifest = pack.pack(out)
+        self.assertEqual(manifest["target"], "reason")
+        self.assertEqual(manifest["backdrops"]["back"], {"file": "Panel_Back.png"})
+
+    def test_a_backdrop_of_the_wrong_size_fails(self):
+        r = Render(self.root, scale=2).knob("gain", linear(-150, 150, 4)).backplate()
+        r.dir.mkdir(parents=True, exist_ok=True)
+        r.reason(self.SIDES)
+        Image.new("RGBA", (10, 10)).save(r.dir / "backdrop_folded_back.png")
+        with self.assertRaises(pack.PackError):
+            pack.pack(r.write())
+
+    def test_a_juce_render_writes_no_gui2d(self):
+        out = Render(self.root).knob("gain", linear(-150, 150, 4)).backplate().write()
+        pack.pack(out)
+        self.assertFalse((out / "final" / "GUI2D").exists())
 
 
 if __name__ == "__main__":

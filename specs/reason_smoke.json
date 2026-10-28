@@ -1,0 +1,230 @@
+{
+  "name": "reason_smoke",
+  "target": "reason",
+  "panel": {
+    "size": [
+      754,
+      138
+    ],
+    "material": "powder_coat",
+    "color": "#121213",
+    "grain": 0.6,
+    "screw_head": "phillips",
+    "screw_color": "#4a4a4a",
+    "screws": [
+      [
+        14,
+        14
+      ],
+      [
+        14,
+        124
+      ],
+      [
+        740,
+        14
+      ],
+      [
+        740,
+        124
+      ]
+    ],
+    "labels": [
+      {
+        "text": "REASON SMOKE",
+        "pos": [
+          120,
+          20
+        ],
+        "size": 8,
+        "color": "#e6e3da",
+        "tracking": 1.2
+      },
+      {
+        "text": "GAIN",
+        "pos": [
+          120,
+          122
+        ],
+        "size": 7,
+        "color": "#e6e3da"
+      },
+      {
+        "text": "MODE",
+        "pos": [
+          300,
+          20
+        ],
+        "size": 7,
+        "color": "#e6e3da"
+      }
+    ]
+  },
+  "back": {
+    "labels": [
+      {
+        "text": "REASON SMOKE — BACK",
+        "pos": [
+          377,
+          20
+        ],
+        "size": 8,
+        "color": "#e6e3da"
+      }
+    ],
+    "screws": [
+      [
+        14,
+        14
+      ],
+      [
+        14,
+        124
+      ],
+      [
+        740,
+        14
+      ],
+      [
+        740,
+        124
+      ]
+    ]
+  },
+  "folded_front": {
+    "labels": [
+      {
+        "text": "REASON SMOKE",
+        "pos": [
+          377,
+          15
+        ],
+        "size": 7,
+        "color": "#e6e3da"
+      }
+    ]
+  },
+  "light": {
+    "key_angle_deg": 45,
+    "hdri": "studio.exr"
+  },
+  "wear": 0.2,
+  "components": [
+    {
+      "id": "gain",
+      "type": "knob",
+      "pos": [
+        120,
+        70
+      ],
+      "diameter": 70,
+      "margin": 8,
+      "frames": 16,
+      "angle": [
+        -150,
+        150
+      ],
+      "style": {
+        "shape": "skirt_cap",
+        "skirt": {
+          "diameter": 70,
+          "height": 2
+        },
+        "knurl": {
+          "diameter": 40,
+          "height": 6,
+          "teeth": 40
+        },
+        "cap": {
+          "diameter": 33,
+          "height": 7
+        },
+        "pointer": "line",
+        "pointer_on": "skirt"
+      },
+      "scale_marks": {
+        "values": [
+          0,
+          2,
+          4,
+          6,
+          8,
+          10
+        ],
+        "radius": 44,
+        "size": 6,
+        "color": "#e6e3da",
+        "upright": true,
+        "dots": 42
+      }
+    },
+    {
+      "id": "mode",
+      "type": "button",
+      "pos": [
+        300,
+        70
+      ],
+      "size": [
+        20,
+        34
+      ]
+    },
+    {
+      "id": "vu",
+      "type": "vu_meter",
+      "pos": [
+        520,
+        69
+      ],
+      "size": [
+        164,
+        96
+      ],
+      "window": [
+        150,
+        84
+      ],
+      "pivot": [
+        0,
+        45
+      ],
+      "frames": 16,
+      "angle": [
+        -45,
+        48
+      ],
+      "bezel_color": "#141414",
+      "scale_marks": {
+        "radius": 66,
+        "size": 5,
+        "red_from": 18.7,
+        "marks": [
+          [
+            "-20",
+            -38.6
+          ],
+          [
+            "-10",
+            -24.9
+          ],
+          [
+            "-5",
+            -9.2
+          ],
+          [
+            "0",
+            18.7
+          ],
+          [
+            "+3",
+            45.0
+          ]
+        ]
+      },
+      "face": {
+        "color": "#e8dba4"
+      }
+    }
+  ]
+}
