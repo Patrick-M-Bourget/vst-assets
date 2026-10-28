@@ -54,8 +54,7 @@
     ]
   },
   "light": {
-    "key_angle_deg": 45,
-    "hdri": "studio.exr"
+    "vignette": 0.12
   },
   "wear": 0.3,
   "components": [
