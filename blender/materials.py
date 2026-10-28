@@ -86,7 +86,86 @@ def make(preset, wear, color=None, texture=None, area=None, grain=0.0):
     links.new(coords.outputs["Object"], noise.inputs["Vector"])
     links.new(noise.outputs["Fac"], spread.inputs["Value"])
     links.new(spread.outputs["Result"], bsdf.inputs["Roughness"])
+    if wear and preset not in UNWORN:
+        shaped_wear(mat, bsdf, wear, metal=p.get("metallic", 0.0) > 0.5)
     return mat
+
+
+# Glass, plastics that light passes through, the meter's printed face, the
+# plate and its print wear evenly or not at all; everything else by shape.
+UNWORN = {"glass", "jewel_red", "smoked_acrylic", "meter_face", "powder_coat", "paint_white"}
+
+
+def shaped_wear(mat, bsdf, wear, metal):
+    """Wear that follows shape, scaled by `wear`: edges a hand rubs come up
+    polished (and, on paint or bakelite, a little lighter), and crevices
+    (knurl grooves, around nuts, skirt joints) collect dust: darker and
+    duller. Edges come from the Bevel node against the true normal,
+    crevices from a local Ambient Occlusion probe."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+
+    def ramp(value, lo, hi):
+        node = nodes.new("ShaderNodeMapRange")
+        node.interpolation_type = "SMOOTHSTEP"
+        node.inputs["From Min"].default_value, node.inputs["From Max"].default_value = lo, hi
+        links.new(value, node.inputs["Value"])
+        return node.outputs["Result"]
+
+    def math_node(op, a, b):
+        node = nodes.new("ShaderNodeMath")
+        node.operation = op
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                node.inputs[i].default_value = v
+            else:
+                links.new(v, node.inputs[i])
+        return node.outputs["Value"]
+
+    bevel = nodes.new("ShaderNodeBevel")
+    bevel.samples = 8
+    bevel.inputs["Radius"].default_value = 0.04  # 4 px at 1x: parts' edges are rounded over several px
+    geometry = nodes.new("ShaderNodeNewGeometry")
+    facing = nodes.new("ShaderNodeVectorMath")
+    facing.operation = "DOT_PRODUCT"
+    links.new(bevel.outputs["Normal"], facing.inputs[0])
+    links.new(geometry.outputs["Normal"], facing.inputs[1])
+    edge = ramp(facing.outputs["Value"], 0.998, 0.95)  # 0 on flats, 1 on a rounded edge
+
+    ao = nodes.new("ShaderNodeAmbientOcclusion")
+    ao.samples = 8
+    ao.only_local = True
+    ao.inputs["Distance"].default_value = 0.05  # 5 px at 1x
+    cavity = ramp(ao.outputs["AO"], 0.85, 0.3)  # 0 in the open, 1 deep in a groove
+
+    # Colour: dust darkens crevices; rubbed paint and bakelite edges lighten a little.
+    base = bsdf.inputs["Base Color"]
+    source = base.links[0].from_socket if base.links else None
+    flat = tuple(base.default_value)
+    dust = nodes.new("ShaderNodeMix")
+    dust.data_type = "RGBA"
+    dust.blend_type = "MULTIPLY"
+    links.new(math_node("MULTIPLY", cavity, 0.8 * wear), dust.inputs["Factor"])
+    if source:
+        links.new(source, dust.inputs[6])
+    else:
+        dust.inputs[6].default_value = flat
+    dust.inputs[7].default_value = (0.25, 0.23, 0.2, 1)
+    result = dust.outputs[2]
+    if not metal:
+        rubbed = nodes.new("ShaderNodeMix")
+        rubbed.data_type = "RGBA"
+        rubbed.blend_type = "MIX"
+        links.new(math_node("MULTIPLY", edge, 0.5 * wear), rubbed.inputs["Factor"])
+        links.new(result, rubbed.inputs[6])
+        rubbed.inputs[7].default_value = (0.2, 0.19, 0.18, 1)
+        result = rubbed.outputs[2]
+    links.new(result, base)
+
+    # Roughness: polished edges, dull dusty crevices.
+    rough = bsdf.inputs["Roughness"].links[0].from_socket
+    polished = math_node("SUBTRACT", rough, math_node("MULTIPLY", edge, 0.35 * wear))
+    dusty = math_node("ADD", polished, math_node("MULTIPLY", cavity, 0.5 * wear))
+    links.new(math_node("MAXIMUM", dusty, 0.02), bsdf.inputs["Roughness"])
 
 
 def relief(mat, bsdf, spec):
