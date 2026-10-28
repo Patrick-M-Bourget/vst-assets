@@ -67,6 +67,61 @@ def frustum(name, r_bottom, r_top, z0, z1, segments=128):
     return new_object(name, bm)
 
 
+def lathe(name, profile, segments=128):
+    """A solid of revolution about Z from a (radius, z) profile running from
+    the rim inward; a profile ending at radius 0 closes at the centre."""
+    bm = bmesh.new()
+    rings = []
+    for rho, z in profile:
+        if rho == 0:
+            rings.append([bm.verts.new((0, 0, z))] * segments)
+            continue
+        rings.append([bm.verts.new((rho * math.cos(2 * math.pi * i / segments),
+                                    rho * math.sin(2 * math.pi * i / segments), z)) for i in range(segments)])
+    for outer, inner in zip(rings, rings[1:]):
+        for i in range(segments):
+            j = (i + 1) % segments
+            quad = [outer[i], outer[j], inner[j], inner[i]]
+            face = bm.faces.new(list(dict.fromkeys(quad)))
+            face.smooth = True
+    bm.faces.new(rings[0][::-1])  # the base, sitting on the Panel
+    return new_object(name, bm)
+
+
+def dome_profile(r, h, shoulder, dome, steps=24):
+    """A Knob body's (radius, z) profile: a slightly tapered side, a rounded
+    shoulder `shoulder` wide, then a crown `dome` high, from the rim inward."""
+    top = r * 0.93
+    flat = top - shoulder
+    f = 0.4 * h / (h - shoulder)  # a point partway up the side, so a line can run down it
+    points = [(r, 0.0), (r + (top - r) * f, 0.4 * h)]
+    for i in range(steps + 1):
+        a = math.pi / 2 * i / steps
+        points.append((flat + shoulder * math.cos(a), h - shoulder + shoulder * math.sin(a)))
+    for i in range(1, steps + 1):
+        rho = flat * (1 - i / steps)
+        points.append((rho, h + dome * 0.5 * (1 + math.cos(math.pi * rho / flat))))
+    return points
+
+
+def ribbon(name, profile, width, lift=0.0015):
+    """A thin strip of paint `width` wide following a (radius, z) profile
+    along +Y, lifted `lift` off the surface: a pointer line over a crown
+    and down a side."""
+    bm = bmesh.new()
+    pairs = []
+    for k, (rho, z) in enumerate(profile):
+        a, b = profile[max(k - 1, 0)], profile[min(k + 1, len(profile) - 1)]
+        tx, tz = b[0] - a[0], b[1] - a[1]
+        n = math.hypot(tx, tz) or 1.0
+        nx, nz = -tz / n, tx / n  # outward, for a profile running over the top and down the side
+        y, zz = rho + nx * lift, z + nz * lift
+        pairs.append((bm.verts.new((-width / 2, y, zz)), bm.verts.new((width / 2, y, zz))))
+    for (a0, a1), (b0, b1) in zip(pairs, pairs[1:]):
+        bm.faces.new((a0, a1, b1, b0)).smooth = True
+    return new_object(name, bm)
+
+
 def teardrop(radius, tip, half_width_deg, segments=256):
     """A circle pulled out to a point at 12 o'clock (+Y): a skirt's outline."""
     points = []
@@ -123,12 +178,15 @@ def build_skirt_cap_knob(spec, comp, wear):
     pointer = style.get("pointer", "line")
     on = style.get("pointer_on", "skirt" if "skirt" in parts else "cap")
     _, r_on, top = parts[on]
-    if pointer == "dot":
-        # A small black dot set into the cap, two thirds of the way out.
-        dot = frustum(f"{comp['id']}_dot", r_on * 0.12, r_on * 0.12, top - 0.2 * PX, top + 0.05 * PX, segments=32)
-        dot.location.y = r_on * 0.62
-        dot.data.materials.append(materials.make("bakelite_black", wear))
-        dot.parent = root
+    if pointer in ("dot", "ring"):
+        # A small black dot, or a ring of black paint, set into the cap two thirds of the way out.
+        if pointer == "dot":
+            mark = frustum(f"{comp['id']}_dot", r_on * 0.12, r_on * 0.12, top - 0.2 * PX, top + 0.05 * PX, segments=32)
+        else:
+            mark = annulus(f"{comp['id']}_ring", r_on * 0.13, r_on * 0.075, top + 0.05 * PX)
+        mark.location.y = r_on * 0.62
+        mark.data.materials.append(materials.make("bakelite_black", wear))
+        mark.parent = root
     else:
         # On a skirt the line runs from the part under it out to the skirt's rim.
         inner = next((r for k, (_, r, _) in parts.items() if k != on and r < r_on), 0.0) if on == "skirt" else 0.1 * r_on
@@ -159,8 +217,9 @@ def build_knob(spec, comp, wear):
     body_mat = materials.make(comp.get("material", "bakelite_black"), wear)
     line_mat = materials.make("paint_white", wear)
 
-    body = frustum(f"{comp['id']}_body", r, r * 0.93, 0, h)
-    soften(body, r * 0.18, segments=8)
+    # A crowned top and a rounded shoulder, as on the Refs' bakelite caps.
+    profile = dome_profile(r, h, r * 0.18, r * style.get("dome", 0.12))
+    body = lathe(f"{comp['id']}_body", profile)
     body.data.materials.append(body_mat)
     extent = r
 
@@ -175,7 +234,9 @@ def build_knob(spec, comp, wear):
         skirt.parent = body
         extent = tip
 
-    line = box(f"{comp['id']}_line", r * 0.07, r * 0.8, (0, r * 0.45, h))
+    # The line runs from near the centre over the crown and down the side.
+    side = [(rho, z) for rho, z in reversed(profile) if rho >= r * 0.1 and z >= h * 0.35]
+    line = ribbon(f"{comp['id']}_line", side, r * 0.07)
     line.data.materials.append(line_mat)
     line.parent = body
 
@@ -303,6 +364,19 @@ def build_lamp(spec, comp, wear):
             emission.default_value = strength * lit
 
     return bezel, 2 * r / PX, pose
+
+
+def annulus(name, outer, inner, z, segments=48):
+    """A flat ring of paint at height z."""
+    bm = bmesh.new()
+    rim = [bm.verts.new((outer * math.cos(t), outer * math.sin(t), z)) for t in
+           (2 * math.pi * i / segments for i in range(segments))]
+    hole = [bm.verts.new((inner * math.cos(t), inner * math.sin(t), z)) for t in
+            (2 * math.pi * i / segments for i in range(segments))]
+    for i in range(segments):
+        j = (i + 1) % segments
+        bm.faces.new((rim[i], rim[j], hole[j], hole[i]))
+    return new_object(name, bm)
 
 
 def box(name, width, length, at):

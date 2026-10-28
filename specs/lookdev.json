@@ -138,7 +138,7 @@
           "diameter": 31,
           "height": 5
         },
-        "pointer": "dot"
+        "pointer": "ring"
       },
       "frames": 1,
       "angle": [

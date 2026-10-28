@@ -223,10 +223,7 @@
     "screw_color": "#4a4a4a",
     "grain": 0.6
   },
-  "light": {
-    "key_angle_deg": 45,
-    "hdri": "studio.exr"
-  },
+  "light": {},
   "wear": 0.25,
   "components": [
     {
@@ -404,7 +401,7 @@
           "diameter": 31,
           "height": 5
         },
-        "pointer": "dot"
+        "pointer": "ring"
       },
       "frames": 128,
       "angle": [
@@ -456,7 +453,7 @@
           "diameter": 31,
           "height": 5
         },
-        "pointer": "dot"
+        "pointer": "ring"
       },
       "frames": 128,
       "angle": [
@@ -595,7 +592,7 @@
         ]
       },
       "face": {
-        "color": "#e8dba4",
+        "color": "#f0d68a",
         "labels": [
           {
             "text": "VU",
