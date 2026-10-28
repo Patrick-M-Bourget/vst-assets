@@ -17,20 +17,20 @@ REPO = Path(__file__).resolve().parent.parent
 PRESETS = {
     "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35},
     "chrome": {"color": "#e8e8e8", "metallic": 1.0, "roughness": 0.08},
-    # Zinc-plated hardware. Not metallic: from straight above, metal would
-    # only mirror the dark studio ceiling.
-    "zinc": {"color": "#a4a6a6", "roughness": 0.35},
+    # Zinc-plated hardware. Fully metallic: the reflection rig (render.py)
+    # gives metal something to mirror from straight above.
+    "zinc": {"color": "#a4a6a6", "metallic": 1.0, "roughness": 0.3},
     "brushed_aluminium": {"color": "#c8c8c8", "metallic": 1.0, "roughness": 0.3, "anisotropic": 0.8},
     "powder_coat": {"color": "#c4c6c4", "roughness": 0.55},
     "paint_white": {"color": "#e6e2d6", "roughness": 0.45},
-    # Toggle hardware. Part metal only, for the same reason as zinc.
-    "nickel": {"color": "#c9c6bf", "metallic": 0.6, "roughness": 0.2},
+    # Toggle hardware.
+    "nickel": {"color": "#d4d1ca", "metallic": 1.0, "roughness": 0.16},
     "jewel_red": {"color": "#d0201a", "roughness": 0.03, "transmission": 1.0},
     "bezel_grey": {"color": "#3c3e40", "roughness": 0.3, "coat": 0.2},
     "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
     "meter_face": {"color": "#ead9a8", "roughness": 0.6},
-    # A knob cap spun from aluminium. Part metal only, for the same reason as zinc.
-    "spun_aluminium": {"color": "#d8d8d5", "metallic": 0.7, "roughness": 0.14, "anisotropic": 0.95},
+    # A knob cap spun from aluminium: brushed in circles.
+    "spun_aluminium": {"color": "#dcdcd8", "metallic": 1.0, "roughness": 0.18, "anisotropic": 0.9},
     # A tinted clear-plastic knob skirt: the Panel shows through it, darkened.
     "smoked_acrylic": {"color": "#9a9aa0", "roughness": 0.04, "transmission": 1.0, "coat": 0.5},
 }

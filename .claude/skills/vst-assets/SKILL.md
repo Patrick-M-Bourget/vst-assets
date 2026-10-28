@@ -57,5 +57,5 @@ About 15 min for opto_leveler. Run it in the background. Report the files in `ou
 ## Gotchas
 
 - A Cycles shadow catcher records any light a Component blocks, even one with `use_shadow` off. Exclude every Component from the fill (render.py does, via shadow linking), or Frames get a halo that their edge cuts off.
-- Seen straight down, metal mirrors the dark studio ceiling and goes black. Hardware uses part-metal presets (`zinc`, `nickel`).
+- Seen straight down, every flat top reflects straight up. Metal needs something bright there; black bakelite and paint must not see it, or they go milky. render.py's metal dome (light-linked to metal presets only) and procedural reflection rig handle this; a new metal preset must be added to `METALS` in render.py.
 - A Frame carries shadow but cannot carry light spilling onto the Panel. Keep a glow inside the part (`visible_diffuse = False`).
