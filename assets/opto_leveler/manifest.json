@@ -11,8 +11,8 @@
       "type": "knob",
       "file": "knob_gain_128f_2x.png",
       "frame_size": [
-        250,
-        250
+        322,
+        322
       ],
       "frames": 128,
       "angles": [
@@ -146,10 +146,10 @@
         150.0
       ],
       "bounds": [
-        262,
-        128,
-        125,
-        125
+        248,
+        114,
+        161,
+        161
       ],
       "scale_marks": [
         {
@@ -203,8 +203,8 @@
       "type": "knob",
       "file": "knob_peak_reduction_128f_2x.png",
       "frame_size": [
-        250,
-        250
+        322,
+        322
       ],
       "frames": 128,
       "angles": [
@@ -338,10 +338,10 @@
         150.0
       ],
       "bounds": [
-        730,
-        122,
-        125,
-        125
+        716,
+        108,
+        161,
+        161
       ],
       "scale_marks": [
         {
@@ -395,8 +395,8 @@
       "type": "vu_meter",
       "file": "vu_meter_vu_128f_2x.png",
       "frame_size": [
-        284,
-        204
+        290,
+        212
       ],
       "frames": 128,
       "angles": [
@@ -530,10 +530,10 @@
         48.0
       ],
       "bounds": [
-        480,
-        97,
-        142,
-        102
+        479,
+        95,
+        145,
+        106
       ],
       "scale_marks": [
         {
@@ -587,8 +587,8 @@
       "type": "knob",
       "file": "knob_meter_select_3f_2x.png",
       "frame_size": [
-        236,
-        236
+        302,
+        302
       ],
       "frames": 3,
       "angles": [
@@ -597,10 +597,10 @@
         50
       ],
       "bounds": [
-        878,
-        59,
-        118,
-        118
+        865,
+        46,
+        151,
+        151
       ]
     },
     {
@@ -608,8 +608,8 @@
       "type": "toggle",
       "file": "toggle_mode_2f_2x.png",
       "frame_size": [
-        148,
-        148
+        228,
+        228
       ],
       "frames": 2,
       "states": [
@@ -617,10 +617,10 @@
         "limit"
       ],
       "bounds": [
-        93,
-        183,
-        74,
-        74
+        77,
+        167,
+        114,
+        114
       ]
     },
     {
@@ -628,8 +628,8 @@
       "type": "toggle",
       "file": "toggle_power_2f_2x.png",
       "frame_size": [
-        148,
-        148
+        228,
+        228
       ],
       "frames": 2,
       "states": [
@@ -637,10 +637,10 @@
         "on"
       ],
       "bounds": [
-        904,
-        180,
-        74,
-        74
+        888,
+        164,
+        114,
+        114
       ]
     },
     {
@@ -648,8 +648,8 @@
       "type": "lamp",
       "file": "lamp_pilot_2f_2x.png",
       "frame_size": [
-        76,
-        76
+        82,
+        82
       ],
       "frames": 2,
       "states": [
@@ -657,17 +657,17 @@
         "on"
       ],
       "bounds": [
-        969,
-        187,
-        38,
-        38
+        910,
+        152,
+        41,
+        41
       ]
     }
   ],
   "warnings": [
-    "knob_gain_128f_2x.png is 250x32000, over the 16384 px texture limit many hosts have",
-    "knob_peak_reduction_128f_2x.png is 250x32000, over the 16384 px texture limit many hosts have",
-    "vu_meter_vu_128f_2x.png is 284x26112, over the 16384 px texture limit many hosts have"
+    "knob_gain_128f_2x.png is 322x41216, over the 16384 px texture limit many hosts have",
+    "knob_peak_reduction_128f_2x.png is 322x41216, over the 16384 px texture limit many hosts have",
+    "vu_meter_vu_128f_2x.png is 290x27136, over the 16384 px texture limit many hosts have"
   ],
   "backplate": {
     "file": "bg_opto_leveler_2x.png",
@@ -681,10 +681,10 @@
       "id": "vu_glass",
       "file": "overlay_vu_glass_2x.png",
       "bounds": [
-        433,
-        58,
-        241,
-        145
+        429,
+        54,
+        250,
+        154
       ]
     }
   ]
