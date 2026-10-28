@@ -48,10 +48,7 @@
       }
     ]
   },
-  "light": {
-    "key_angle_deg": 45,
-    "hdri": "studio.exr"
-  },
+  "light": {},
   "wear": 0.25,
   "components": [
     {
@@ -174,7 +171,8 @@
       "states": [
         "off",
         "on"
-      ]
+      ],
+      "margin": 10
     },
     {
       "id": "lamp",

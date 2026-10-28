@@ -15,7 +15,7 @@ import bpy
 REPO = Path(__file__).resolve().parent.parent
 
 PRESETS = {
-    "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35, "relief": ("noise", 400, 0.15)},
+    "bakelite_black": {"color": "#050505", "roughness": 0.12, "coat": 0.7, "relief": ("noise", 400, 0.15)},
     "chrome": {"color": "#e8e8e8", "metallic": 1.0, "roughness": 0.08, "relief": ("noise", 900, 0.08)},
     # Zinc-plated hardware. Fully metallic: the reflection rig (render.py)
     # gives metal something to mirror from straight above.
@@ -30,8 +30,8 @@ PRESETS = {
     "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
     "meter_face": {"color": "#ead9a8", "roughness": 0.6, "relief": ("noise", 250, 0.1)},  # paper tooth
     # A knob cap spun from aluminium: brushed in circles.
-    "spun_aluminium": {"color": "#dcdcd8", "metallic": 1.0, "roughness": 0.18, "anisotropic": 0.9,
-                       "relief": ("rings", 90, 0.35)},  # lathe grooves
+    "spun_aluminium": {"color": "#dcdcd8", "metallic": 1.0, "roughness": 0.22, "anisotropic": 1.0,
+                       "relief": ("rings", 600, 0.15)},  # lathe grooves
     # A tinted clear-plastic knob skirt: the Panel shows through it, darkened.
     "smoked_acrylic": {"color": "#9a9aa0", "roughness": 0.04, "transmission": 1.0, "coat": 0.5},
 }
@@ -103,7 +103,7 @@ def relief(mat, bsdf, spec):
         tex.wave_type = "RINGS"
         tex.rings_direction = "Z"
         tex.inputs["Scale"].default_value = scale
-        tex.inputs["Distortion"].default_value = 0.6
+        tex.inputs["Distortion"].default_value = 0.0
         tex.inputs["Detail"].default_value = 2.0
         source = tex.outputs["Fac"]
         links.new(coords.outputs["Object"], tex.inputs["Vector"])
