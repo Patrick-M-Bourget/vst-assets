@@ -46,7 +46,7 @@ def build_backplate(spec, wear):
     steel = materials.make("zinc", wear)
     ink = materials.make("paint_white", wear, INK)
     for pos in panel.get("screws", []):
-        objects += panel_screw(spec, pos, steel, ink)
+        objects += panel_screw(spec, pos, steel, ink, head=panel.get("screw_head", "slotted"))
     if panel.get("trims"):
         nickel = materials.make("nickel", wear)
         for pos in panel["trims"]:
@@ -101,19 +101,25 @@ def rack_screw(spec, pos, head_mat, washer_mat):
     return [washer, head]
 
 
-def panel_screw(spec, pos, steel, ink, radius=4.5):
-    """A small slotted panel screw. The slot sits at a fixed, slightly
-    random-looking angle, as screws do."""
+def panel_screw(spec, pos, steel, ink, radius=4.5, head="slotted"):
+    """A small panel screw, `slotted` or `phillips` (a cross of two shorter
+    slots). The slot sits at a fixed, slightly random-looking angle, as
+    screws do."""
     x, y = panel_to_world(spec, *pos)
-    head = dome("panel_screw", radius * PX, 1.8 * PX)
-    head.data.materials.append(steel)
-    slot = box_obj("panel_screw_slot", (radius * 1.7 * PX, 0.9 * PX, 1.0 * PX))
-    slot.location.z = 1.5 * PX
-    slot.rotation_euler.z = math.radians((pos[0] * 37 + pos[1] * 11) % 180)
-    slot.data.materials.append(ink)
-    for obj in (head, slot):
+    dome_obj = dome("panel_screw", radius * PX, 1.8 * PX)
+    dome_obj.data.materials.append(steel)
+    turn = (pos[0] * 37 + pos[1] * 11) % 180
+    slots = [(1.7, 0.9, turn)] if head == "slotted" else [(1.3, 0.8, turn), (1.3, 0.8, turn + 90)]
+    objects = [dome_obj]
+    for length, width, angle in slots:
+        slot = box_obj("panel_screw_slot", (radius * length * PX, width * PX, 1.0 * PX))
+        slot.location.z = 1.5 * PX
+        slot.rotation_euler.z = math.radians(angle)
+        slot.data.materials.append(ink)
+        objects.append(slot)
+    for obj in objects:
         obj.location.x, obj.location.y = x, y
-    return [head, slot]
+    return objects
 
 
 def trim(spec, pos, nut_mat, steel, ink, across_flats=26):
@@ -201,11 +207,30 @@ def component_print(spec, comp, wear):
         dx, dy = label.pop("offset", [0, 0])
         objects.append(text(spec, {**label, "pos": [cx + dx, cy + dy]}, wear))
     marks = comp.get("scale_marks")
-    for mark in scale_marks(comp):
-        a = math.radians(mark["angle"])
-        pos = [cx + marks["radius"] * math.sin(a), cy - marks["radius"] * math.cos(a)]
-        objects.append(text(spec, {"text": mark["value"], "pos": pos, "size": marks.get("size", 8)}, wear, mark["angle"]))
+    ticks = scale_marks(comp)
+    if not ticks:
+        return objects
+    color, size = marks.get("color", INK), marks.get("size", 8)
+    for mark in ticks:
+        pos = polar((cx, cy), marks["radius"], mark["angle"])
+        turn = 0.0 if marks.get("upright") else mark["angle"]
+        objects.append(text(spec, {"text": mark["value"], "pos": pos, "size": size, "color": color}, wear, turn))
+    if "dots" in marks:
+        # A printed dot between each pair of marks, as on an 1176's dials.
+        ink = materials.make("paint_white", wear, color)
+        for a, b in zip(ticks, ticks[1:]):
+            objects.append(dot(spec, polar((cx, cy), marks["dots"], (a["angle"] + b["angle"]) / 2), size * 0.3, ink))
     return objects
+
+
+def dot(spec, pos, diameter, mat):
+    """A printed dot, `diameter` px across, as thin as a label."""
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=diameter / 2 * PX, depth=0.08 * PX)
+    obj = bpy.context.object
+    obj.name = "print_dot"
+    obj.location = (*panel_to_world(spec, *pos), 0.12 * PX)
+    obj.data.materials.append(mat)
+    return obj
 
 
 def meter_face(spec, comp, wear):
