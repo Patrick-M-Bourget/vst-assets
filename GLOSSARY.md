@@ -48,6 +48,10 @@ The Spec's table of printed values and their angles. It draws both a Knob's tick
 **Wear**:
 One number from 0 to 1 for how used the hardware looks: scratches, dulled paint, dust in the recesses. 0.3 is light vintage.
 
+**Lean**:
+How far a part's top shifts on screen for each unit of its height, the same for every part on a Panel, so its side walls show while the Panel itself stays flat and undistorted.
+_Avoid_: Tilt, perspective, camera angle
+
 **Refs**:
 Reference images for a Spec, in `refs/<spec name>/`. They stay on the user's machine and are never committed.
 
