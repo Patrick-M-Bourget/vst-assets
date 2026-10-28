@@ -254,10 +254,7 @@ def meter_face(spec, comp, wear):
                                 (cx - w / 2 * PX, cy - h / 2 * PX, w * PX, h * PX)))
     plate.scale.z = FACE_Z / PLATE_THICKNESS
     plate.location.z = FACE_Z / 2 * PX
-    glow = plate.data.materials[0].node_tree.nodes["Principled BSDF"]
-    # Always lit from behind.
-    glow.inputs["Emission Color"].default_value = glow.inputs["Base Color"].default_value
-    glow.inputs["Emission Strength"].default_value = face.get("glow", 0.25)
+    backlight(plate.data.materials[0], h * PX, face.get("glow", 1.1), face.get("backlight", "#ffa800"))
     objects = [plate]
 
     ticks = scale_marks(comp)
@@ -281,6 +278,40 @@ def meter_face(spec, comp, wear):
         dx, dy = label.pop("offset")
         objects.append(text(spec, {**label, "pos": [comp["pos"][0] + dx, comp["pos"][1] + dy]}, wear, 0, FACE_Z))
     return objects
+
+
+def backlight(mat, height, strength, warm):
+    """Light the face from behind, as a meter's lamps do: the face's own
+    colour tinted `warm`, brightest low and centre, where the lamps sit,
+    falling off toward the corners. Always on."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    tint = nodes.new("ShaderNodeMix")
+    tint.data_type = "RGBA"
+    tint.blend_type = "MULTIPLY"
+    tint.inputs["Factor"].default_value = 1.0
+    base = bsdf.inputs["Base Color"]
+    if base.links:
+        links.new(base.links[0].from_socket, tint.inputs[6])
+    else:
+        tint.inputs[6].default_value = tuple(base.default_value)
+    tint.inputs[7].default_value = (*materials.srgb_to_linear(warm), 1)
+    links.new(tint.outputs[2], bsdf.inputs["Emission Color"])
+    # Distance from a point a third of the way below the centre.
+    coords = nodes.new("ShaderNodeTexCoord")
+    offset = nodes.new("ShaderNodeVectorMath")
+    offset.operation = "SUBTRACT"
+    offset.inputs[1].default_value = (0, -height / 3, 0)
+    links.new(coords.outputs["Object"], offset.inputs[0])
+    distance = nodes.new("ShaderNodeVectorMath")
+    distance.operation = "LENGTH"
+    links.new(offset.outputs["Vector"], distance.inputs[0])
+    falloff = nodes.new("ShaderNodeMapRange")
+    falloff.interpolation_type = "SMOOTHSTEP"
+    falloff.inputs["From Min"].default_value, falloff.inputs["From Max"].default_value = 0, height * 1.4
+    falloff.inputs["To Min"].default_value, falloff.inputs["To Max"].default_value = strength, strength * 0.3
+    links.new(distance.outputs["Value"], falloff.inputs["Value"])
+    links.new(falloff.outputs["Result"], bsdf.inputs["Emission Strength"])
 
 
 def polar(centre, radius, angle_deg):

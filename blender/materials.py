@@ -25,7 +25,7 @@ PRESETS = {
     "paint_white": {"color": "#e6e2d6", "roughness": 0.32},  # satin print, a touch glossier than the plate
     # Toggle hardware.
     "nickel": {"color": "#d4d1ca", "metallic": 1.0, "roughness": 0.16, "relief": ("noise", 900, 0.08)},
-    "jewel_red": {"color": "#d0201a", "roughness": 0.03, "transmission": 1.0},
+    "jewel_red": {"color": "#c00a06", "roughness": 0.03, "transmission": 1.0},
     "bezel_grey": {"color": "#3c3e40", "roughness": 0.3, "coat": 0.2},
     "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
     "meter_face": {"color": "#ead9a8", "roughness": 0.6, "relief": ("noise", 250, 0.1)},  # paper tooth
