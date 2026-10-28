@@ -11,8 +11,8 @@
       "type": "knob",
       "file": "knob_input_128f_2x.png",
       "frame_size": [
-        278,
-        278
+        320,
+        320
       ],
       "frames": 128,
       "angles": [
@@ -146,10 +146,10 @@
         152.0
       ],
       "bounds": [
-        124,
-        46,
-        139,
-        139
+        115,
+        37,
+        160,
+        160
       ],
       "scale_marks": [
         {
@@ -195,8 +195,8 @@
       "type": "knob",
       "file": "knob_output_128f_2x.png",
       "frame_size": [
-        278,
-        278
+        320,
+        320
       ],
       "frames": 128,
       "angles": [
@@ -330,10 +330,10 @@
         152.0
       ],
       "bounds": [
-        367,
-        46,
-        139,
-        139
+        358,
+        37,
+        160,
+        160
       ],
       "scale_marks": [
         {
@@ -379,8 +379,8 @@
       "type": "knob",
       "file": "knob_attack_128f_2x.png",
       "frame_size": [
-        122,
-        122
+        156,
+        156
       ],
       "frames": 128,
       "angles": [
@@ -514,10 +514,10 @@
         135.0
       ],
       "bounds": [
-        587,
-        36,
-        61,
-        61
+        580,
+        29,
+        78,
+        78
       ],
       "scale_marks": [
         {
@@ -543,8 +543,8 @@
       "type": "knob",
       "file": "knob_release_128f_2x.png",
       "frame_size": [
-        122,
-        122
+        156,
+        156
       ],
       "frames": 128,
       "angles": [
@@ -678,10 +678,10 @@
         135.0
       ],
       "bounds": [
-        587,
-        128,
-        61,
-        61
+        580,
+        121,
+        78,
+        78
       ],
       "scale_marks": [
         {
@@ -707,8 +707,8 @@
       "type": "vu_meter",
       "file": "vu_meter_vu_128f_2x.png",
       "frame_size": [
-        232,
-        168
+        238,
+        176
       ],
       "frames": 128,
       "angles": [
@@ -842,10 +842,10 @@
         48.0
       ],
       "bounds": [
-        809,
-        65,
-        116,
-        84
+        808,
+        63,
+        119,
+        88
       ],
       "scale_marks": [
         {
@@ -899,8 +899,8 @@
       "type": "button",
       "file": "button_ratio_20_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -908,10 +908,10 @@
         "down"
       ],
       "bounds": [
-        723,
-        31,
-        51,
-        51
+        718,
+        26,
+        63,
+        63
       ]
     },
     {
@@ -919,8 +919,8 @@
       "type": "button",
       "file": "button_ratio_12_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -928,10 +928,10 @@
         "down"
       ],
       "bounds": [
-        723,
-        67,
-        51,
-        51
+        718,
+        62,
+        63,
+        63
       ]
     },
     {
@@ -939,8 +939,8 @@
       "type": "button",
       "file": "button_ratio_8_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -948,10 +948,10 @@
         "down"
       ],
       "bounds": [
-        723,
-        103,
-        51,
-        51
+        718,
+        98,
+        63,
+        63
       ]
     },
     {
@@ -959,8 +959,8 @@
       "type": "button",
       "file": "button_ratio_4_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -968,10 +968,10 @@
         "down"
       ],
       "bounds": [
-        723,
-        139,
-        51,
-        51
+        718,
+        134,
+        63,
+        63
       ]
     },
     {
@@ -979,8 +979,8 @@
       "type": "button",
       "file": "button_meter_gr_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -988,10 +988,10 @@
         "down"
       ],
       "bounds": [
-        967,
-        31,
-        51,
-        51
+        962,
+        26,
+        63,
+        63
       ]
     },
     {
@@ -999,8 +999,8 @@
       "type": "button",
       "file": "button_meter_plus8_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -1008,10 +1008,10 @@
         "down"
       ],
       "bounds": [
-        967,
-        67,
-        51,
-        51
+        962,
+        62,
+        63,
+        63
       ]
     },
     {
@@ -1019,8 +1019,8 @@
       "type": "button",
       "file": "button_meter_plus4_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -1028,10 +1028,10 @@
         "down"
       ],
       "bounds": [
-        967,
-        103,
-        51,
-        51
+        962,
+        98,
+        63,
+        63
       ]
     },
     {
@@ -1039,8 +1039,8 @@
       "type": "button",
       "file": "button_meter_off_2f_2x.png",
       "frame_size": [
-        102,
-        102
+        126,
+        126
       ],
       "frames": 2,
       "states": [
@@ -1048,17 +1048,19 @@
         "down"
       ],
       "bounds": [
-        967,
-        139,
-        51,
-        51
+        962,
+        134,
+        63,
+        63
       ]
     }
   ],
   "warnings": [
-    "knob_input_128f_2x.png is 278x35584, over the 16384 px texture limit many hosts have",
-    "knob_output_128f_2x.png is 278x35584, over the 16384 px texture limit many hosts have",
-    "vu_meter_vu_128f_2x.png is 232x21504, over the 16384 px texture limit many hosts have"
+    "knob_input_128f_2x.png is 320x40960, over the 16384 px texture limit many hosts have",
+    "knob_output_128f_2x.png is 320x40960, over the 16384 px texture limit many hosts have",
+    "knob_attack_128f_2x.png is 156x19968, over the 16384 px texture limit many hosts have",
+    "knob_release_128f_2x.png is 156x19968, over the 16384 px texture limit many hosts have",
+    "vu_meter_vu_128f_2x.png is 238x22528, over the 16384 px texture limit many hosts have"
   ],
   "backplate": {
     "file": "bg_fet_limiter_2x.png",
@@ -1072,10 +1074,10 @@
       "id": "vu_glass",
       "file": "overlay_vu_glass_2x.png",
       "bounds": [
-        780,
-        42,
-        179,
-        111
+        776,
+        38,
+        188,
+        120
       ]
     }
   ]
