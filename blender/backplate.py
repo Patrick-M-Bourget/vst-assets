@@ -28,7 +28,8 @@ def build_backplate(spec, wear):
     w, h = panel["size"]
     ear = panel.get("ears", 0)
     plate_mat = materials.make(panel.get("material", "powder_coat"), wear, panel.get("color"),
-                               panel.get("texture"), (-w / 2 * PX, -h / 2 * PX, w * PX, h * PX))
+                               panel.get("texture"), (-w / 2 * PX, -h / 2 * PX, w * PX, h * PX),
+                               panel.get("grain", 0.0))
     objects = []
 
     # The faceplate, and the rack ears either side of it with a hairline seam between.

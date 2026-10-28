@@ -11,7 +11,7 @@ Sizes and positions are in 1× px; `pos` is from the Panel's top-left. Angles ar
 
 ## panel
 
-`size`, `scale` (2), `material`, `color`, `texture`, `ears` (rack-ear width), `rack_screw_y`, `hinge`, `screws` (positions), `screw_head` (`slotted` or `phillips`), `screw_color`, `trims` (positions of slotted trimmers on hex bushings), `labels`.
+`size`, `scale` (2), `material`, `color`, `texture`, `grain` (0–1: procedural horizontal brushing; ignored with a `texture`), `ears` (rack-ear width), `rack_screw_y`, `hinge`, `screws` (positions), `screw_head` (`slotted` or `phillips`), `screw_color`, `trims` (positions of slotted trimmers on hex bushings), `labels`.
 
 A label is `{text, pos, size, font, color, tracking}`, where `size` is cap height and `font` is `book`, `medium` (the default) or `bold_italic`.
 

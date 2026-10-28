@@ -8,7 +8,7 @@
     ],
     "look_brief": [
       "Layout: 2U black-face FET limiter, 1100x200 at 1x, from blackface_1176ln_rack.jpg (straight-on). Our name FIELDLINE / FL-1; no third-party marks.",
-      "Panel: near-black (#121213) powder_coat; white printed labels; eight black Phillips screws (screw_color), no separate rack ears. Brushed grain not rendered.",
+      "Panel: near-black (#121213) powder_coat; white printed labels; eight black Phillips screws (screw_color), no separate rack ears. Horizontal brushed grain: panel.grain 0.6.",
       "Input/Output knobs: smoked clear skirt (104 px) carrying a white pointer line, black knurled collar, spun aluminium cap: style skirt_cap, pointer on the skirt.",
       "Attack/Release knobs: tall black knurled body, spun aluminium cap with a black dot pointer: style skirt_cap, pointer dot.",
       "Knob scales: upright white numbers with dots between: scale_marks with color, upright, dots.",
@@ -220,7 +220,8 @@
       }
     ],
     "screw_head": "phillips",
-    "screw_color": "#4a4a4a"
+    "screw_color": "#4a4a4a",
+    "grain": 0.6
   },
   "light": {
     "key_angle_deg": 45,
