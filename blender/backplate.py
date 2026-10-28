@@ -43,7 +43,7 @@ def build_backplate(spec, wear):
             for y in panel.get("rack_screw_y", [0.29 * h, 0.71 * h]):
                 objects += rack_screw(spec, (x, y), head, washer)
 
-    steel = materials.make("zinc", wear)
+    steel = materials.make("zinc", wear, panel.get("screw_color"))
     ink = materials.make("paint_white", wear, INK)
     for pos in panel.get("screws", []):
         objects += panel_screw(spec, pos, steel, ink, head=panel.get("screw_head", "slotted"))

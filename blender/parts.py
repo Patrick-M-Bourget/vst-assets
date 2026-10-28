@@ -372,7 +372,7 @@ def build_vu_overlay(spec, comp, wear):
             bm.faces.new((a[i], a[(i + 1) % 4], b[(i + 1) % 4], b[i]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bezel = new_object(f"{comp['id']}_bezel", bm)
-    bezel.data.materials.append(materials.make("bezel_grey", wear))
+    bezel.data.materials.append(materials.make("bezel_grey", wear, comp.get("bezel_color")))
     soften(bezel, 0.8 * PX, segments=3, angle_deg=30)
 
     bm = bmesh.new()

@@ -11,7 +11,7 @@ Sizes and positions are in 1× px; `pos` is from the Panel's top-left. Angles ar
 
 ## panel
 
-`size`, `scale` (2), `material`, `color`, `texture`, `ears` (rack-ear width), `rack_screw_y`, `hinge`, `screws` (positions), `screw_head` (`slotted` or `phillips`), `trims` (positions of slotted trimmers on hex bushings), `labels`.
+`size`, `scale` (2), `material`, `color`, `texture`, `ears` (rack-ear width), `rack_screw_y`, `hinge`, `screws` (positions), `screw_head` (`slotted` or `phillips`), `screw_color`, `trims` (positions of slotted trimmers on hex bushings), `labels`.
 
 A label is `{text, pos, size, font, color, tracking}`, where `size` is cap height and `font` is `book`, `medium` (the default) or `bold_italic`.
 
@@ -28,7 +28,7 @@ Every Component has `id`, `type`, `pos`, and optionally `margin` (px of Frame ar
 - `button`: a latching rectangular push button. `size` [w, h], `height` (px proud when up, 12), `travel` (px it sinks when down, 8), `material`, `states` (`up` first, `down` last). One Component per button; interlocking a column is the plugin's job.
 - `lamp`: `diameter`, `color`, `glow`, `states` (dark first, lit last).
 - `vu_meter`:
-  - Layout: `size` (bezel), `window`, `pivot` (offset from `pos`).
+  - Layout: `size` (bezel), `window`, `pivot` (offset from `pos`; keep it inside the bezel's bottom edge), `bezel_color`.
   - Needle: `frames`, `angle`.
   - Face: `scale_marks` ({radius, size, red_from, marks: [[value, angle], ...]}), `inner_marks`, `face` ({color, texture, glow, labels with `offset`}).
 
