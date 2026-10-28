@@ -49,15 +49,26 @@ def reset_scene():
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.image_settings.color_depth = "8"
     scene.render.resolution_percentage = 100
-    scene.view_settings.view_transform = "Standard"
     return scene
+
+
+def set_look(scene, spec):
+    """Tone mapping: AgX by default, for highlights that roll off and colour
+    that stays rich (ADR 0009). Spec colours are material colours."""
+    light = spec.get("light", {})
+    scene.view_settings.view_transform = light.get("view", "AgX")
+    scene.view_settings.look = light.get("look", "AgX - Medium High Contrast")
+    scene.view_settings.exposure = light.get("exposure", 0.25)
 
 
 def set_quality(scene, quality):
     """Cycles for both: Eevee has no shadow catcher. A Draft takes fewer samples."""
     scene.render.engine = "CYCLES"
-    scene.cycles.samples = 128 if quality == "final" else 16
+    scene.cycles.samples = 256 if quality == "final" else 16
     scene.cycles.use_denoising = True
+    # Denoise guided by albedo and normals so micro-relief survives it.
+    scene.cycles.denoising_input_passes = "RGB_ALBEDO_NORMAL"
+    scene.cycles.denoising_prefilter = "ACCURATE"
     # Glass shows only its reflections in the alpha, so what's under an Overlay shows through.
     scene.cycles.film_transparent_glass = True
     prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -70,20 +81,144 @@ def set_quality(scene, quality):
 
 
 def build_world(spec):
+    """What shiny surfaces reflect. By default a procedural studio (`light.env`
+    "rig"): a camera looking straight down sees each spot reflect the point
+    straight above it, so cards hung over the Panel would light every Knob
+    differently. An environment depends only on direction, so every part
+    reflects the same studio. `light.env` "hdri" uses `light.hdri` instead."""
     light = spec.get("light", {})
     world = bpy.data.worlds.new("World")
     bpy.context.scene.world = world
-    nodes = world.node_tree.nodes
-    env = nodes.new("ShaderNodeTexEnvironment")
-    hdri = Path(bpy.utils.system_resource("DATAFILES", path="studiolights")) / "world" / light.get("hdri", "studio.exr")
-    env.image = bpy.data.images.load(str(hdri))
+    nodes, links = world.node_tree.nodes, world.node_tree.links
     background = nodes["Background"]
-    background.inputs["Strength"].default_value = light.get("hdri_strength", 0.6)
-    world.node_tree.links.new(env.outputs["Color"], background.inputs["Color"])
+    if light.get("env", "rig") == "hdri":
+        env = nodes.new("ShaderNodeTexEnvironment")
+        hdri = Path(bpy.utils.system_resource("DATAFILES", path="studiolights")) / "world" / light.get("hdri", "studio.exr")
+        env.image = bpy.data.images.load(str(hdri))
+        background.inputs["Strength"].default_value = light.get("hdri_strength", 0.6)
+        links.new(env.outputs["Color"], background.inputs["Color"])
+    else:
+        links.new(reflection_rig(nodes, links, light), background.inputs["Strength"])
+        background.inputs["Color"].default_value = (1, 1, 1, 1)
     # The studio shows only in reflections. Lighting surfaces with it would
     # darken the floor around every Component (occlusion), and a Frame's edge
     # would cut that off in a visible line. The fill light does its job instead.
     world.cycles_visibility.diffuse = False
+
+
+def reflection_rig(nodes, links, light):
+    """The rig's brightness by direction, as a node output: a soft hot spot
+    high toward the top-left (the streak on a spun cap, the shine on a
+    glossy top), a low ring brighter on the top-left side (rims, knurls and
+    bevels), and black elsewhere, for contrast."""
+    direction = nodes.new("ShaderNodeTexCoord").outputs["Generated"]
+
+    def toward(vector):
+        dot = nodes.new("ShaderNodeVectorMath")
+        dot.operation = "DOT_PRODUCT"
+        links.new(direction, dot.inputs[0])
+        dot.inputs[1].default_value = Vector(vector).normalized()
+        return dot.outputs["Value"]
+
+    def ramp(value, lo, hi, out_lo=0.0, out_hi=1.0):
+        node = nodes.new("ShaderNodeMapRange")
+        node.interpolation_type = "SMOOTHSTEP"
+        node.inputs["From Min"].default_value, node.inputs["From Max"].default_value = lo, hi
+        node.inputs["To Min"].default_value, node.inputs["To Max"].default_value = out_lo, out_hi
+        links.new(value, node.inputs["Value"])
+        return node.outputs["Result"]
+
+    def times(a, b):
+        node = nodes.new("ShaderNodeMath")
+        node.operation = "MULTIPLY"
+        for i, v in enumerate((a, b)):
+            if isinstance(v, float):
+                node.inputs[i].default_value = v
+            else:
+                links.new(v, node.inputs[i])
+        return node.outputs["Value"]
+
+    def plus(a, b):
+        node = nodes.new("ShaderNodeMath")
+        node.operation = "ADD"
+        links.new(a, node.inputs[0])
+        links.new(b, node.inputs[1])
+        return node.outputs["Value"]
+
+    # Well clear of straight up, which is what every flat top reflects: a
+    # spot overhead would turn black bakelite and the Panel milky.
+    elevation = math.radians(light.get("spot_elevation_deg", 52))
+    spot_dir = (-math.cos(elevation) / math.sqrt(2), math.cos(elevation) / math.sqrt(2), math.sin(elevation))
+    spot = times(ramp(toward(spot_dir), math.cos(math.radians(16)), math.cos(math.radians(5))), light.get("spot", 12.0))
+    up = toward((0, 0, 1))
+    band = times(ramp(up, 0.02, 0.12), ramp(up, 0.25, 0.4, 1.0, 0.0))
+    side = ramp(toward((-1, 1, 0)), -1.0, 1.0, 0.35, 1.0)
+    ring = times(times(band, side), light.get("ring", 3.0))
+    # A dim, broad wash overhead: a satin sheen across glossy black tops,
+    # far too faint to turn them milky.
+    sky = times(ramp(toward((-0.25, 0.25, 1)), 0.75, 1.0), light.get("sky", 0.12))
+    return plus(plus(spot, ring), sky)
+
+
+METALS = ("chrome", "zinc", "nickel", "spun_aluminium", "brushed_aluminium")
+
+
+def metal_dome(spec, objects):
+    """Soft bright patches near straight up, so far away they act as part of
+    the environment, that only metal can see (light linking). Flat
+    metal reflects straight up and needs something bright there; flat black
+    bakelite and paint must not see it, or they go milky."""
+    light = spec.get("light", {})
+    metal = [obj for obj in objects if obj.type == "MESH"
+             and any(m and m.name.split(".")[0] in METALS for m in obj.data.materials)]
+    if not metal:
+        return None
+    receivers = bpy.data.collections.new("Metal")
+    for obj in metal:
+        receivers.objects.link(obj)
+    # Two soft patches on opposite sides of straight up, the top-left one
+    # brighter: spun caps show the bright "bow-tie" of two wedges with dark
+    # wedges between, as on the yardstick plugins.
+    strength = light.get("dome", 40.0)
+    patches = [(math.radians(135), light.get("dome_elevation_deg", 52), 6, strength),
+               (math.radians(-45), 56, 5, strength * 0.6)]
+    for i, (azimuth, elevation_deg, radius_deg, power) in enumerate(patches):
+        patch = dome_patch(f"metal_dome_{i}", azimuth, math.radians(elevation_deg), radius_deg, power)
+        patch.light_linking.receiver_collection = receivers
+    return receivers
+
+
+def dome_patch(name, azimuth, elevation, radius_deg, power, distance=500.0):
+    """A soft emissive disc `distance` away in a direction, seen only in
+    reflections: far enough that every part sees it in the same direction."""
+    direction = Vector((math.cos(azimuth) * math.cos(elevation), math.sin(azimuth) * math.cos(elevation),
+                        math.sin(elevation)))
+    radius = distance * math.tan(math.radians(radius_deg))
+    bpy.ops.mesh.primitive_circle_add(vertices=96, radius=radius, fill_type="NGON", location=direction * distance)
+    patch = bpy.context.object
+    patch.name = name
+    patch.rotation_euler = (-direction).to_track_quat("Z", "Y").to_euler()
+
+    mat = bpy.data.materials.new(name)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes.remove(nodes["Principled BSDF"])
+    emission = nodes.new("ShaderNodeEmission")
+    # Brightest in the middle, fading to nothing at the rim: a softbox, not a disc.
+    coords = nodes.new("ShaderNodeTexCoord")
+    length = nodes.new("ShaderNodeVectorMath")
+    length.operation = "LENGTH"
+    fade = nodes.new("ShaderNodeMapRange")
+    fade.interpolation_type = "SMOOTHSTEP"
+    fade.inputs["From Min"].default_value, fade.inputs["From Max"].default_value = radius, radius * 0.3
+    fade.inputs["To Max"].default_value = power
+    links.new(coords.outputs["Object"], length.inputs[0])
+    links.new(length.outputs["Value"], fade.inputs["Value"])
+    links.new(fade.outputs["Result"], emission.inputs["Strength"])
+    links.new(emission.outputs["Emission"], nodes["Material Output"].inputs["Surface"])
+    patch.data.materials.append(mat)
+    for ray in ("visible_camera", "visible_diffuse", "visible_shadow", "visible_transmission", "visible_volume_scatter"):
+        setattr(patch, ray, False)
+    return patch
 
 
 def build_key_light(spec):
@@ -92,13 +227,13 @@ def build_key_light(spec):
     show a highlight on their top-left shoulders. Returns the unit vector
     toward the light. Tuned so a light grey Panel renders near its colour."""
     light = spec.get("light", {})
-    elevation = math.radians(light.get("key_angle_deg", 45))
+    elevation = math.radians(light.get("key_angle_deg", 38))
     toward_light = Vector((-1, 1, 0)).normalized() * math.cos(elevation) + Vector((0, 0, math.sin(elevation)))
     aim = toward_light.to_track_quat("Z", "Y").to_euler()
 
     sun = bpy.data.lights.new("Key", "SUN")
-    sun.energy = light.get("key_energy", 0.85)
-    sun.angle = math.radians(light.get("key_softness_deg", 8))
+    sun.energy = light.get("key_energy", 1.1)
+    sun.angle = math.radians(light.get("key_softness_deg", 5))
     key = bpy.data.objects.new("Key", sun)
     key.rotation_euler = aim
     bpy.context.scene.collection.objects.link(key)
@@ -118,7 +253,7 @@ def build_key_light(spec):
     # shadow catcher keeps only the key's shadows.
     fill_data = bpy.data.lights.new("Fill", "AREA")
     fill_data.size = 40
-    fill_data.energy = light.get("fill_energy", 5000)
+    fill_data.energy = light.get("fill_energy", 3200)
     fill_data.use_shadow = False  # see also unblock_fill()
     fill = bpy.data.objects.new("Fill", fill_data)
     fill.location = (0, 0, 20)
@@ -253,6 +388,7 @@ def main():
     out_dir = REPO / "out" / spec["name"]
 
     scene = reset_scene()
+    set_look(scene, spec)
     set_quality(scene, quality)
     build_world(spec)
     toward_light = build_key_light(spec)
@@ -278,6 +414,7 @@ def main():
             groups[overlay_id] = [*parts, shadow_catcher(spec, overlays[overlay_id])]
 
     unblock_fill([obj for name, objects in groups.items() if name != "backplate" for obj in objects])
+    metal_dome(spec, [obj for objects in groups.values() for obj in objects])
     show_only(groups, "backplate")
     frame_camera(camera, scene, spec, [0, 0, *spec["panel"]["size"]], scale)
     scene.render.filepath = str(out_dir / "backplate.png")

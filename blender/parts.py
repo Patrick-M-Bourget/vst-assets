@@ -105,7 +105,7 @@ def build_skirt_cap_knob(spec, comp, wear):
         mat = materials.make(part.get("material", {"skirt": "smoked_acrylic", "knurl": "bakelite_black",
                                                     "cap": "spun_aluminium"}[key]), wear)
         if key == "knurl":
-            obj = prism(f"{comp['id']}_knurl", knurled(r, part.get("teeth", 60), r * 0.05), z, z + h)
+            obj = prism(f"{comp['id']}_knurl", knurled(r, part.get("teeth", 60), r * 0.08), z, z + h)
             soften(obj, h * 0.06, segments=2, angle_deg=60)
         else:
             obj = frustum(f"{comp['id']}_{key}", r, r * (0.97 if key == "cap" else 0.99), z, z + h)
