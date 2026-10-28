@@ -29,6 +29,10 @@ PRESETS = {
     "bezel_grey": {"color": "#3c3e40", "roughness": 0.3, "coat": 0.2},
     "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
     "meter_face": {"color": "#ead9a8", "roughness": 0.6},
+    # A knob cap spun from aluminium. Part metal only, for the same reason as zinc.
+    "spun_aluminium": {"color": "#d8d8d5", "metallic": 0.7, "roughness": 0.14, "anisotropic": 0.95},
+    # A tinted clear-plastic knob skirt: the Panel shows through it, darkened.
+    "smoked_acrylic": {"color": "#9a9aa0", "roughness": 0.04, "transmission": 1.0, "coat": 0.5},
 }
 
 

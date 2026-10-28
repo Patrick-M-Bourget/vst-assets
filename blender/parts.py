@@ -79,12 +79,81 @@ def teardrop(radius, tip, half_width_deg, segments=256):
     return points
 
 
+def knurled(radius, teeth, depth, segments_per_tooth=4):
+    """A circle cut with `teeth` straight grooves `depth` deep: a knurled edge's outline."""
+    points = []
+    for i in range(teeth * segments_per_tooth):
+        theta = 2 * math.pi * i / (teeth * segments_per_tooth)
+        groove = 0.5 - 0.5 * math.cos(2 * math.pi * i / segments_per_tooth)  # 0 on a ridge, 1 in a groove
+        r = radius - depth * groove
+        points.append((r * math.sin(theta), r * math.cos(theta)))
+    return points
+
+
+def build_skirt_cap_knob(spec, comp, wear):
+    """A Knob stacked from parts, as on an 1176: an optional thin `skirt`, a
+    knurled `knurl` ring or body, and a spun metal `cap` on top. The pointer
+    is a white `line` on the skirt or the cap, or a black `dot` near the
+    cap's edge. Sizes are 1x px."""
+    style = comp["style"]
+    z, parts, reach = 0.0, {}, 0.0
+    for key in ("skirt", "knurl", "cap"):
+        part = style.get(key)
+        if not part:
+            continue
+        r, h = part["diameter"] / 2 * PX, part["height"] * PX
+        mat = materials.make(part.get("material", {"skirt": "smoked_acrylic", "knurl": "bakelite_black",
+                                                    "cap": "spun_aluminium"}[key]), wear)
+        if key == "knurl":
+            obj = prism(f"{comp['id']}_knurl", knurled(r, part.get("teeth", 60), r * 0.05), z, z + h)
+            soften(obj, h * 0.06, segments=2, angle_deg=60)
+        else:
+            obj = frustum(f"{comp['id']}_{key}", r, r * (0.97 if key == "cap" else 0.99), z, z + h)
+            soften(obj, min(h * 0.35, r * 0.1), segments=5)
+        obj.data.materials.append(mat)
+        parts[key] = (obj, r, z + h)
+        z += h
+        reach = max(reach, r)
+
+    root = next(iter(parts.values()))[0]
+    for obj, _, _ in parts.values():
+        if obj is not root:
+            obj.parent = root
+
+    pointer = style.get("pointer", "line")
+    on = style.get("pointer_on", "skirt" if "skirt" in parts else "cap")
+    _, r_on, top = parts[on]
+    if pointer == "dot":
+        # A small black dot set into the cap, two thirds of the way out.
+        dot = frustum(f"{comp['id']}_dot", r_on * 0.12, r_on * 0.12, top - 0.2 * PX, top + 0.05 * PX, segments=32)
+        dot.location.y = r_on * 0.62
+        dot.data.materials.append(materials.make("bakelite_black", wear))
+        dot.parent = root
+    else:
+        # On a skirt the line runs from the part under it out to the skirt's rim.
+        inner = next((r for k, (_, r, _) in parts.items() if k != on and r < r_on), 0.0) if on == "skirt" else 0.1 * r_on
+        line = box(f"{comp['id']}_line", r_on * 0.04 if on == "skirt" else r_on * 0.07,
+                   (r_on - inner) * 0.92, (0, inner + (r_on - inner) * 0.5, top))
+        line.data.materials.append(materials.make("paint_white", wear))
+        line.parent = root
+
+    root.location.xy = panel_to_world(spec, *comp["pos"])
+
+    def pose(angle):
+        root.rotation_euler.z = -math.radians(angle)
+
+    return root, 2 * reach / PX, pose
+
+
 def build_knob(spec, comp, wear):
     """A Knob. Styles: `pointer_skirt` (round cap on a teardrop skirt whose
-    tail points away from the line, as on an LA-2A) and `plain` (a bevelled
-    cylinder). Both carry a white line on the cap pointing at the value."""
+    tail points away from the line, as on an LA-2A), `plain` (a bevelled
+    cylinder), both with a white line on the cap pointing at the value, and
+    `skirt_cap` (build_skirt_cap_knob)."""
     style = comp.get("style", {})
     shape = style.get("shape", "plain")
+    if shape == "skirt_cap":
+        return build_skirt_cap_knob(spec, comp, wear)
     r = comp["diameter"] / 2 * PX
     h = r * style.get("height", 0.9)
     body_mat = materials.make(comp.get("material", "bakelite_black"), wear)
