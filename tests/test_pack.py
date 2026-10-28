@@ -277,5 +277,23 @@ class PackTest(unittest.TestCase):
         self.assertEqual(pack.pack(out)["warnings"], [])
 
 
+
+class LightFalloff(unittest.TestCase):
+    def test_lighter_top_left_darker_bottom_right(self):
+        lit = pack.light_falloff(Image.new("RGBA", (400, 100), (100, 100, 100, 255)), 0.2, 0.0)
+        top_left, bottom_right = lit.getpixel((5, 5)), lit.getpixel((394, 94))
+        self.assertGreater(top_left[0], 110)
+        self.assertLess(bottom_right[0], 90)
+        self.assertEqual(top_left[3], 255)
+
+    def test_vignette_darkens_the_edges_not_the_centre(self):
+        lit = pack.light_falloff(Image.new("RGB", (400, 100), (100, 100, 100)), 0.0, 0.3)
+        self.assertEqual(lit.getpixel((200, 50))[0], 100)
+        self.assertLess(lit.getpixel((2, 50))[0], 90)
+
+    def test_zero_leaves_the_image_alone(self):
+        image = Image.new("RGB", (40, 10), (100, 100, 100))
+        self.assertIs(pack.light_falloff(image, 0, 0), image)
+
 if __name__ == "__main__":
     unittest.main()

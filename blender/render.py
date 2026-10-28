@@ -455,6 +455,8 @@ def main():
         "panel": {"size": spec["panel"]["size"]},
         "components": rendered,
         "overlays": [{"id": overlay_id, "bounds": rect} for overlay_id, rect in overlays.items()],
+        # Studio light across the plate, applied by pack.py to every Backplate.
+        "falloff": [spec.get("light", {}).get("falloff", 0.15), spec.get("light", {}).get("vignette", 0.3)],
         # Where this machine keeps the Refs, for compare.png (ADR 0003: never committed).
         "refs": [str(REPO / "refs" / spec["name"] / ref) for ref in spec.get("notes", {}).get("refs", [])],
     }
