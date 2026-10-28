@@ -15,22 +15,23 @@ import bpy
 REPO = Path(__file__).resolve().parent.parent
 
 PRESETS = {
-    "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35},
-    "chrome": {"color": "#e8e8e8", "metallic": 1.0, "roughness": 0.08},
+    "bakelite_black": {"color": "#050505", "roughness": 0.18, "coat": 0.35, "relief": ("noise", 400, 0.15)},
+    "chrome": {"color": "#e8e8e8", "metallic": 1.0, "roughness": 0.08, "relief": ("noise", 900, 0.08)},
     # Zinc-plated hardware. Fully metallic: the reflection rig (render.py)
     # gives metal something to mirror from straight above.
-    "zinc": {"color": "#a4a6a6", "metallic": 1.0, "roughness": 0.3},
+    "zinc": {"color": "#a4a6a6", "metallic": 1.0, "roughness": 0.3, "relief": ("noise", 600, 0.15)},
     "brushed_aluminium": {"color": "#c8c8c8", "metallic": 1.0, "roughness": 0.3, "anisotropic": 0.8},
-    "powder_coat": {"color": "#c4c6c4", "roughness": 0.55},
-    "paint_white": {"color": "#e6e2d6", "roughness": 0.45},
+    "powder_coat": {"color": "#c4c6c4", "roughness": 0.5, "relief": ("noise", 60, 0.2)},  # orange peel
+    "paint_white": {"color": "#e6e2d6", "roughness": 0.32},  # satin print, a touch glossier than the plate
     # Toggle hardware.
-    "nickel": {"color": "#d4d1ca", "metallic": 1.0, "roughness": 0.16},
+    "nickel": {"color": "#d4d1ca", "metallic": 1.0, "roughness": 0.16, "relief": ("noise", 900, 0.08)},
     "jewel_red": {"color": "#d0201a", "roughness": 0.03, "transmission": 1.0},
     "bezel_grey": {"color": "#3c3e40", "roughness": 0.3, "coat": 0.2},
     "glass": {"color": "#ffffff", "roughness": 0.0, "transmission": 1.0},
-    "meter_face": {"color": "#ead9a8", "roughness": 0.6},
+    "meter_face": {"color": "#ead9a8", "roughness": 0.6, "relief": ("noise", 250, 0.1)},  # paper tooth
     # A knob cap spun from aluminium: brushed in circles.
-    "spun_aluminium": {"color": "#dcdcd8", "metallic": 1.0, "roughness": 0.18, "anisotropic": 0.9},
+    "spun_aluminium": {"color": "#dcdcd8", "metallic": 1.0, "roughness": 0.18, "anisotropic": 0.9,
+                       "relief": ("rings", 90, 0.35)},  # lathe grooves
     # A tinted clear-plastic knob skirt: the Panel shows through it, darkened.
     "smoked_acrylic": {"color": "#9a9aa0", "roughness": 0.04, "transmission": 1.0, "coat": 0.5},
 }
@@ -68,6 +69,10 @@ def make(preset, wear, color=None, texture=None, area=None, grain=0.0):
         stretch(mat, bsdf, texture, area)
     elif grain:
         brush(mat, bsdf, grain)
+    if grain and not texture:
+        relief(mat, bsdf, ("streaks", 1, 0.25 * grain))
+    elif p.get("relief"):
+        relief(mat, bsdf, p["relief"])
 
     roughness = p["roughness"]
     coords = nodes.new("ShaderNodeTexCoord")
@@ -82,6 +87,43 @@ def make(preset, wear, color=None, texture=None, area=None, grain=0.0):
     links.new(noise.outputs["Fac"], spread.inputs["Value"])
     links.new(spread.outputs["Result"], bsdf.inputs["Roughness"])
     return mat
+
+
+def relief(mat, bsdf, spec):
+    """Micro-relief through a Bump node, so highlights break up the way they
+    do on real surfaces. `spec` is (kind, scale, strength): `noise` (grain,
+    orange peel, polishing marks; scale is features per Blender unit),
+    `rings` (lathe grooves around the part's own axis), or `streaks`
+    (brushing along X, matching brush())."""
+    kind, scale, strength = spec
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    coords = nodes.new("ShaderNodeTexCoord")
+    if kind == "rings":
+        tex = nodes.new("ShaderNodeTexWave")
+        tex.wave_type = "RINGS"
+        tex.rings_direction = "Z"
+        tex.inputs["Scale"].default_value = scale
+        tex.inputs["Distortion"].default_value = 0.6
+        tex.inputs["Detail"].default_value = 2.0
+        source = tex.outputs["Fac"]
+        links.new(coords.outputs["Object"], tex.inputs["Vector"])
+    else:
+        tex = nodes.new("ShaderNodeTexNoise")
+        tex.inputs["Detail"].default_value = 4.0
+        tex.inputs["Scale"].default_value = 1.0 if kind == "streaks" else scale
+        source = tex.outputs["Fac"]
+        if kind == "streaks":
+            mapping = nodes.new("ShaderNodeMapping")
+            mapping.inputs["Scale"].default_value = (0.4, 70, 1)
+            links.new(coords.outputs["Object"], mapping.inputs["Vector"])
+            links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+        else:
+            links.new(coords.outputs["Object"], tex.inputs["Vector"])
+    bump = nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = strength
+    bump.inputs["Distance"].default_value = 0.002
+    links.new(source, bump.inputs["Height"])
+    links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
 
 
 def brush(mat, bsdf, grain):

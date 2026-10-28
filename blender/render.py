@@ -64,8 +64,11 @@ def set_look(scene, spec):
 def set_quality(scene, quality):
     """Cycles for both: Eevee has no shadow catcher. A Draft takes fewer samples."""
     scene.render.engine = "CYCLES"
-    scene.cycles.samples = 128 if quality == "final" else 16
+    scene.cycles.samples = 256 if quality == "final" else 16
     scene.cycles.use_denoising = True
+    # Denoise guided by albedo and normals so micro-relief survives it.
+    scene.cycles.denoising_input_passes = "RGB_ALBEDO_NORMAL"
+    scene.cycles.denoising_prefilter = "ACCURATE"
     # Glass shows only its reflections in the alpha, so what's under an Overlay shows through.
     scene.cycles.film_transparent_glass = True
     prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -151,7 +154,10 @@ def reflection_rig(nodes, links, light):
     band = times(ramp(up, 0.02, 0.12), ramp(up, 0.25, 0.4, 1.0, 0.0))
     side = ramp(toward((-1, 1, 0)), -1.0, 1.0, 0.35, 1.0)
     ring = times(times(band, side), light.get("ring", 3.0))
-    return plus(spot, ring)
+    # A dim, broad wash overhead: a satin sheen across glossy black tops,
+    # far too faint to turn them milky.
+    sky = times(ramp(toward((-0.25, 0.25, 1)), 0.75, 1.0), light.get("sky", 0.12))
+    return plus(plus(spot, ring), sky)
 
 
 METALS = ("chrome", "zinc", "nickel", "spun_aluminium", "brushed_aluminium")
