@@ -42,10 +42,11 @@ def srgb_to_linear(hex_color):
     return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
 
 
-def make(preset, wear, color=None, texture=None, area=None):
+def make(preset, wear, color=None, texture=None, area=None, grain=0.0):
     """A new material from a preset. `color` ('#rrggbb') overrides the preset's.
     `texture` (an image path, relative to the repo) replaces the colour,
-    stretched over `area`: (x, y, w, h) in Blender units, its bottom-left corner first."""
+    stretched over `area`: (x, y, w, h) in Blender units, its bottom-left corner first.
+    `grain` (0-1) brushes the colour with fine streaks along X, as on a brushed faceplate."""
     p = PRESETS[preset]
     mat = bpy.data.materials.new(preset)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
@@ -65,6 +66,8 @@ def make(preset, wear, color=None, texture=None, area=None):
 
     if texture:
         stretch(mat, bsdf, texture, area)
+    elif grain:
+        brush(mat, bsdf, grain)
 
     roughness = p["roughness"]
     coords = nodes.new("ShaderNodeTexCoord")
@@ -79,6 +82,33 @@ def make(preset, wear, color=None, texture=None, area=None):
     links.new(noise.outputs["Fac"], spread.inputs["Value"])
     links.new(spread.outputs["Result"], bsdf.inputs["Roughness"])
     return mat
+
+
+def brush(mat, bsdf, grain):
+    """Multiply the base colour by noise stretched along X: streaks a few px
+    apart at 2x and hundreds long, at any Scale since it's procedural."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    coords = nodes.new("ShaderNodeTexCoord")
+    mapping = nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (0.4, 70, 1)
+    noise = nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 1.0
+    noise.inputs["Detail"].default_value = 6.0
+    shade = nodes.new("ShaderNodeMapRange")
+    shade.inputs["From Min"].default_value = 0.3
+    shade.inputs["From Max"].default_value = 0.7
+    shade.inputs["To Min"].default_value = 1 - grain
+    shade.inputs["To Max"].default_value = 1 + grain
+    mix = nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.blend_type = "MULTIPLY"
+    mix.inputs["Factor"].default_value = 1.0
+    mix.inputs[6].default_value = bsdf.inputs["Base Color"].default_value
+    links.new(coords.outputs["Object"], mapping.inputs["Vector"])
+    links.new(mapping.outputs["Vector"], noise.inputs["Vector"])
+    links.new(noise.outputs["Fac"], shade.inputs["Value"])
+    links.new(shade.outputs["Result"], mix.inputs[7])
+    links.new(mix.outputs[2], bsdf.inputs["Base Color"])
 
 
 def stretch(mat, bsdf, texture, area):

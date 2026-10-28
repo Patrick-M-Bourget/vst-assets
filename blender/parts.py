@@ -189,7 +189,7 @@ def build_knob(spec, comp, wear):
 
 
 def states(comp):
-    return comp.get("states", ["off", "on"])
+    return comp.get("states", ["up", "down"] if comp["type"] == "button" else ["off", "on"])
 
 
 def build_toggle(spec, comp, wear):
@@ -234,6 +234,30 @@ def build_toggle(spec, comp, wear):
         pivot.rotation_euler.x = -math.radians(lean)
 
     return nut, 2 * max(nut_r, reach) / PX, pose
+
+
+def build_button(spec, comp, wear):
+    """A latching push button: a rectangular cap standing `height` px proud
+    of the Panel when `up` (the first State) and sunk `travel` px when
+    `down` (the last). The Panel hides whatever sinks below it."""
+    w, h = (v * PX for v in comp["size"])
+    height, travel = comp.get("height", 12) * PX, comp.get("travel", 8) * PX
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1)
+    bmesh.ops.scale(bm, vec=(w, h, height), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=(0, 0, height / 2), verts=bm.verts)
+    cap = new_object(f"{comp['id']}_cap", bm)
+    soften(cap, min(w, h) * 0.08, segments=4)
+    cap.data.materials.append(materials.make(comp.get("material", "bakelite_black"), wear))
+
+    x, y = panel_to_world(spec, *comp["pos"])
+    cap.location = (x, y, 0)
+    names = states(comp)
+
+    def pose(state):
+        cap.location.z = -travel * names.index(state) / (len(names) - 1)
+
+    return cap, max(comp["size"]), pose
 
 
 def build_lamp(spec, comp, wear):
@@ -348,7 +372,7 @@ def build_vu_overlay(spec, comp, wear):
             bm.faces.new((a[i], a[(i + 1) % 4], b[(i + 1) % 4], b[i]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bezel = new_object(f"{comp['id']}_bezel", bm)
-    bezel.data.materials.append(materials.make("bezel_grey", wear))
+    bezel.data.materials.append(materials.make("bezel_grey", wear, comp.get("bezel_color")))
     soften(bezel, 0.8 * PX, segments=3, angle_deg=30)
 
     bm = bmesh.new()
@@ -365,5 +389,6 @@ def build_vu_overlay(spec, comp, wear):
     return [bezel, glass], (half_w, half_h, half_w, half_h)
 
 
-BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp, "vu_meter": build_vu_meter}
+BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp, "vu_meter": build_vu_meter,
+            "button": build_button}
 OVERLAY_BUILDERS = {"vu_meter": build_vu_overlay}
