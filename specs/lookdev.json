@@ -1,0 +1,321 @@
+{
+  "name": "lookdev",
+  "notes": {
+    "look_brief": [
+      "One Frame of every part type, for judging the look against refs/lookdev/ (step 1 of #28)."
+    ],
+    "refs": [
+      "uad_1176.png",
+      "uad_la2a.png",
+      "softube_cl1b.jpg",
+      "arturia_fet76.png",
+      "arturia_vca65.png",
+      "arturia_tubesta.png"
+    ]
+  },
+  "panel": {
+    "size": [
+      1100,
+      200
+    ],
+    "scale": 2,
+    "material": "powder_coat",
+    "color": "#121213",
+    "grain": 0.6,
+    "screw_head": "phillips",
+    "screw_color": "#4a4a4a",
+    "screws": [
+      [
+        20,
+        20
+      ],
+      [
+        20,
+        180
+      ]
+    ],
+    "labels": [
+      {
+        "text": "FIELDLINE",
+        "pos": [
+          350,
+          180
+        ],
+        "size": 11,
+        "font": "bold_italic",
+        "color": "#e6e3da",
+        "tracking": 1.1
+      }
+    ]
+  },
+  "light": {
+    "key_angle_deg": 45,
+    "hdri": "studio.exr"
+  },
+  "wear": 0.25,
+  "components": [
+    {
+      "id": "opto_knob",
+      "type": "knob",
+      "pos": [
+        90,
+        95
+      ],
+      "diameter": 64,
+      "material": "bakelite_black",
+      "style": {
+        "shape": "pointer_skirt"
+      },
+      "frames": 1,
+      "angle": [
+        -40,
+        -40
+      ]
+    },
+    {
+      "id": "stepped",
+      "type": "knob",
+      "pos": [
+        210,
+        95
+      ],
+      "diameter": 60,
+      "material": "bakelite_black",
+      "style": {
+        "shape": "pointer_skirt",
+        "tip_width_deg": 70
+      },
+      "angles": [
+        0
+      ]
+    },
+    {
+      "id": "fet_skirt",
+      "type": "knob",
+      "pos": [
+        350,
+        95
+      ],
+      "diameter": 104,
+      "style": {
+        "shape": "skirt_cap",
+        "skirt": {
+          "diameter": 104,
+          "height": 2.5
+        },
+        "knurl": {
+          "diameter": 60,
+          "height": 8,
+          "teeth": 48
+        },
+        "cap": {
+          "diameter": 50,
+          "height": 10
+        },
+        "pointer": "line",
+        "pointer_on": "skirt"
+      },
+      "frames": 1,
+      "angle": [
+        40,
+        40
+      ],
+      "margin": 10
+    },
+    {
+      "id": "fet_dot",
+      "type": "knob",
+      "pos": [
+        470,
+        60
+      ],
+      "diameter": 40,
+      "style": {
+        "shape": "skirt_cap",
+        "knurl": {
+          "diameter": 40,
+          "height": 12,
+          "teeth": 36
+        },
+        "cap": {
+          "diameter": 31,
+          "height": 5
+        },
+        "pointer": "dot"
+      },
+      "frames": 1,
+      "angle": [
+        -60,
+        -60
+      ]
+    },
+    {
+      "id": "button",
+      "type": "button",
+      "pos": [
+        470,
+        140
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "toggle",
+      "type": "toggle",
+      "pos": [
+        560,
+        60
+      ],
+      "diameter": 30,
+      "states": [
+        "off",
+        "on"
+      ]
+    },
+    {
+      "id": "lamp",
+      "type": "lamp",
+      "pos": [
+        560,
+        140
+      ],
+      "diameter": 24,
+      "states": [
+        "off",
+        "on"
+      ]
+    },
+    {
+      "id": "vu",
+      "type": "vu_meter",
+      "pos": [
+        730,
+        95
+      ],
+      "size": [
+        164,
+        96
+      ],
+      "window": [
+        148,
+        82
+      ],
+      "pivot": [
+        0,
+        45
+      ],
+      "frames": 1,
+      "angle": [
+        0,
+        0
+      ],
+      "inner_marks": {
+        "radius": 56,
+        "size": 4,
+        "marks": [
+          [
+            "0",
+            -45.0
+          ],
+          [
+            "20",
+            -32.3
+          ],
+          [
+            "40",
+            -19.5
+          ],
+          [
+            "60",
+            -6.8
+          ],
+          [
+            "80",
+            6.0
+          ],
+          [
+            "100",
+            18.7
+          ]
+        ]
+      },
+      "face": {
+        "color": "#e8dba4",
+        "labels": [
+          {
+            "text": "VU",
+            "offset": [
+              -56,
+              -22
+            ],
+            "size": 7
+          },
+          {
+            "text": "VU",
+            "offset": [
+              56,
+              -22
+            ],
+            "size": 7
+          }
+        ]
+      },
+      "bezel_color": "#141414",
+      "scale_marks": {
+        "radius": 66,
+        "size": 5,
+        "red_from": 18.7,
+        "marks": [
+          [
+            "-20",
+            -38.6
+          ],
+          [
+            "-10",
+            -24.9
+          ],
+          [
+            "-7",
+            -16.5
+          ],
+          [
+            "-5",
+            -9.2
+          ],
+          [
+            "-3",
+            0.1
+          ],
+          [
+            "-2",
+            5.6
+          ],
+          [
+            "-1",
+            11.8
+          ],
+          [
+            "0",
+            18.7
+          ],
+          [
+            "+1",
+            26.5
+          ],
+          [
+            "+2",
+            35.2
+          ],
+          [
+            "+3",
+            45.0
+          ]
+        ]
+      }
+    }
+  ]
+}

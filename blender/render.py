@@ -49,8 +49,16 @@ def reset_scene():
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.image_settings.color_depth = "8"
     scene.render.resolution_percentage = 100
-    scene.view_settings.view_transform = "Standard"
     return scene
+
+
+def set_look(scene, spec):
+    """Tone mapping: AgX by default, for highlights that roll off and colour
+    that stays rich (ADR 0009). Spec colours are material colours."""
+    light = spec.get("light", {})
+    scene.view_settings.view_transform = light.get("view", "AgX")
+    scene.view_settings.look = light.get("look", "AgX - Medium High Contrast")
+    scene.view_settings.exposure = light.get("exposure", 0.25)
 
 
 def set_quality(scene, quality):
@@ -253,6 +261,7 @@ def main():
     out_dir = REPO / "out" / spec["name"]
 
     scene = reset_scene()
+    set_look(scene, spec)
     set_quality(scene, quality)
     build_world(spec)
     toward_light = build_key_light(spec)
