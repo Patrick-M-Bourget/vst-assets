@@ -25,7 +25,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from backplate import build_backplate  # noqa: E402
-from parts import BUILDERS, OVERLAY_BUILDERS, PX, panel_to_world, scale_marks  # noqa: E402
+from parts import BUILDERS, OVERLAY_BUILDERS, PX, panel_to_world, scale_marks, states  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 DRAFT_MAX_FRAMES = 16
@@ -210,10 +210,10 @@ def frame_angles(comp, quality):
 
 
 def frame_values(comp, quality):
-    """What each Frame shows: ("angles", [...]) for a Knob, ("states", [...]) for a Toggle or Lamp."""
+    """What each Frame shows: ("angles", [...]) for a Knob, ("states", [...]) for a Toggle, Lamp or button."""
     if comp["type"] in ("knob", "vu_meter"):
         return "angles", frame_angles(comp, quality)
-    return "states", comp.get("states", ["off", "on"])
+    return "states", states(comp)
 
 
 def render_component(scene, camera, spec, comp, pose, rect, out_dir, scale, quality):

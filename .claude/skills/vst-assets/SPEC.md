@@ -25,6 +25,7 @@ Every Component has `id`, `type`, `pos`, and optionally `margin` (px of Frame ar
   - Frames: `frames` (128) and `angle` [start, end]; or `angles` [...] for a Stepped Knob; `bipolar`.
   - Printing: `label` ({text, offset, size}) and `scale_marks`: `values` spread evenly over the turn, or `marks` [[value, angle], ...]; `radius`, `size`, `color` (dark ink by default), `upright` (numbers stay level instead of turning to their angle) and `dots` (the radius of a dot printed between each pair of marks).
 - `toggle`: `diameter` (nut, across flats), `bat_length`, `tilt_deg`, `material`, `states` (the bat leans down in the first State, up in the last).
+- `button`: a latching rectangular push button. `size` [w, h], `height` (px proud when up, 12), `travel` (px it sinks when down, 8), `material`, `states` (`up` first, `down` last). One Component per button; interlocking a column is the plugin's job.
 - `lamp`: `diameter`, `color`, `glow`, `states` (dark first, lit last).
 - `vu_meter`:
   - Layout: `size` (bezel), `window`, `pivot` (offset from `pos`).

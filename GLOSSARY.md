@@ -13,7 +13,7 @@ A plugin's whole front face: the Backplate plus every Component placed on it.
 _Avoid_: Faceplate (except for real hardware), skin, UI
 
 **Component**:
-One control or indicator placed on a Panel: a Knob, Toggle, Lamp or VU Meter.
+One control or indicator placed on a Panel: a Knob, Toggle, Button, Lamp or VU Meter.
 _Avoid_: Widget, control (for the rendered part)
 
 **Stepped Knob**:
@@ -24,6 +24,10 @@ _Avoid_: Rotary switch, selector type
 A bat-handle switch on a hex nut. Its Frames are its States, the bat leaning toward the bottom of the Panel in the first and toward the top in the last.
 _Avoid_: Switch (alone), button
 
+**Button**:
+A latching rectangular push button, as in an 1176's ratio column: proud of the Panel in its first State (`up`), sunk in its last (`down`). Each button is its own Component.
+_Avoid_: Key, switch (alone)
+
 **Lamp**:
 A jewel pilot light: faceted coloured glass in a bezel, dark in its first State and lit in its last.
 _Avoid_: LED, indicator
@@ -33,7 +37,7 @@ A needle meter in three layers: its face (arc, ticks, numbers) printed on the Ba
 _Avoid_: Meter (alone), gauge
 
 **State**:
-The named position a Toggle or Lamp shows in one Frame, such as `off` and `on`, listed in the Spec's `states` and the Manifest. A Knob's Frames are angles instead.
+The named position a Toggle, Button or Lamp shows in one Frame, such as `off` and `on`, listed in the Spec's `states` and the Manifest. A Knob's Frames are angles instead.
 
 **Bipolar Knob**:
 A Knob whose neutral value is at 12 o'clock. It always has an odd Frame count, so one Frame sits exactly at 0°.

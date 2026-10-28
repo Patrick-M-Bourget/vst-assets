@@ -12,9 +12,9 @@
       "Input/Output knobs: smoked clear skirt (104 px) carrying a white pointer line, black knurled collar, spun aluminium cap: style skirt_cap, pointer on the skirt.",
       "Attack/Release knobs: tall black knurled body, spun aluminium cap with a black dot pointer: style skirt_cap, pointer dot.",
       "Knob scales: upright white numbers with dots between: scale_marks with color, upright, dots.",
+      "RATIO and METER: two columns of four latching black push buttons, 20x34 px: type button, States up and down.",
       "VU: cream face, black needle, red band 0..+3, dark bezel. Covered by vu_meter.",
-      "Wear: light (0.25): studio rack unit, clean face. Lighting: default key top-left.",
-      "UNCOVERED: RATIO and METER latching push-button columns (4 buttons each). Left out of this Draft."
+      "Wear: light (0.25): studio rack unit, clean face. Lighting: default key top-left."
     ]
   },
   "panel": {
@@ -613,6 +613,118 @@
           }
         ]
       }
+    },
+    {
+      "id": "ratio_20",
+      "type": "button",
+      "pos": [
+        744,
+        52
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "ratio_12",
+      "type": "button",
+      "pos": [
+        744,
+        88
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "ratio_8",
+      "type": "button",
+      "pos": [
+        744,
+        124
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "ratio_4",
+      "type": "button",
+      "pos": [
+        744,
+        160
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "meter_gr",
+      "type": "button",
+      "pos": [
+        988,
+        52
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "meter_plus8",
+      "type": "button",
+      "pos": [
+        988,
+        88
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "meter_plus4",
+      "type": "button",
+      "pos": [
+        988,
+        124
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
+    },
+    {
+      "id": "meter_off",
+      "type": "button",
+      "pos": [
+        988,
+        160
+      ],
+      "size": [
+        20,
+        34
+      ],
+      "height": 12,
+      "travel": 8
     }
   ]
 }
