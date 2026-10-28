@@ -20,8 +20,8 @@ A label is `{text, pos, size, font, color, tracking}`, where `size` is cap heigh
 Every Component has `id`, `type`, `pos`, and optionally `margin` (px of Frame around the part, default 4).
 
 - `knob`:
-  - Shape and finish: `diameter`, `material`, `style` (`shape`: `plain` or `pointer_skirt`; `height`, `tip`, `tip_width_deg`).
-  - Or `style.shape: "skirt_cap"`, a Knob stacked from parts, as on an 1176: an optional `skirt`, a `knurl` ring or body (`teeth`), and a `cap`, each {`diameter`, `height` in px, `material`}; defaults are `smoked_acrylic`, `bakelite_black` and `spun_aluminium`. `pointer`: `line` (white) or `dot` (black, on the cap); `pointer_on`: `skirt` (the default when there is one) or `cap`. `diameter` is unused; the widest part sets the Frame.
+  - Shape and finish: `diameter`, `material`, `style` (`shape`: `plain` or `pointer_skirt`; `height`, `tip`, `tip_width_deg`, `dome`: the crown's height as a fraction of the radius, default 0.12). The white line runs over the crown and down the side.
+  - Or `style.shape: "skirt_cap"`, a Knob stacked from parts, as on an 1176: an optional `skirt`, a `knurl` ring or body (`teeth`), and a `cap`, each {`diameter`, `height` in px, `material`}; defaults are `smoked_acrylic`, `bakelite_black` and `spun_aluminium`. `pointer`: `line` (white), or `dot` or `ring` (black, on the cap); `pointer_on`: `skirt` (the default when there is one) or `cap`. `diameter` is unused; the widest part sets the Frame.
   - Frames: `frames` (128) and `angle` [start, end]; or `angles` [...] for a Stepped Knob; `bipolar`.
   - Printing: `label` ({text, offset, size}) and `scale_marks`: `values` spread evenly over the turn, or `marks` [[value, angle], ...]; `radius`, `size`, `color` (dark ink by default), `upright` (numbers stay level instead of turning to their angle) and `dots` (the radius of a dot printed between each pair of marks).
 - `toggle`: `diameter` (nut, across flats), `bat_length`, `tilt_deg`, `material`, `states` (the bat leans down in the first State, up in the last).
