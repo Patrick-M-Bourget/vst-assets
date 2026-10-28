@@ -291,7 +291,8 @@ def build_lamp(spec, comp, wear):
     glow = comp.get("glow", 1.0)
 
     glowing = []
-    for mat, color, strength in ((glass, None, 1.5), (bulb_mat, (1, 0.55, 0.3, 1), 12)):
+    # Saturated and moderate: AgX turns bright, saturated light pastel (pink, not red).
+    for mat, color, strength in ((glass, None, 0.5), (bulb_mat, (1, 0.04, 0.01, 1), 2.5)):
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         bsdf.inputs["Emission Color"].default_value = color or tuple(bsdf.inputs["Base Color"].default_value)
         glowing.append((bsdf.inputs["Emission Strength"], strength * glow))
@@ -356,6 +357,43 @@ def build_vu_meter(spec, comp, wear):
     return hub, extent, pose
 
 
+def sheen_layer(name, w, h, z):
+    """A faint diagonal band of light across a pane, top-left to bottom-right,
+    so flat glass seen straight on reads as glass (seen from straight above,
+    a real reflection would only show the black zenith). It's its own
+    see-through layer: light given off by the glass itself would be lost,
+    since glass renders transparent."""
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5)
+    bmesh.ops.scale(bm, vec=(w, h, 1), verts=bm.verts)
+    layer = new_object(name, bm)
+    layer.location.z = z
+    mat = bpy.data.materials.new(name)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes.remove(nodes["Principled BSDF"])
+    coords = nodes.new("ShaderNodeTexCoord")
+    across = nodes.new("ShaderNodeVectorMath")
+    across.operation = "DOT_PRODUCT"
+    across.inputs[1].default_value = (1 / w, 1 / h, 0)  # constant along the band's diagonal
+    links.new(coords.outputs["Object"], across.inputs[0])
+    band = nodes.new("ShaderNodeMapRange")
+    band.interpolation_type = "SMOOTHSTEP"
+    band.inputs["From Min"].default_value, band.inputs["From Max"].default_value = 0.45, 0.0
+    band.inputs["To Max"].default_value = 0.22
+    links.new(across.outputs["Value"], band.inputs["Value"])
+    light = nodes.new("ShaderNodeEmission")
+    light.inputs["Strength"].default_value = 1.0
+    clear = nodes.new("ShaderNodeBsdfTransparent")
+    mix = nodes.new("ShaderNodeMixShader")
+    links.new(band.outputs["Result"], mix.inputs["Fac"])
+    links.new(clear.outputs["BSDF"], mix.inputs[1])
+    links.new(light.outputs["Emission"], mix.inputs[2])
+    links.new(mix.outputs["Shader"], nodes["Material Output"].inputs["Surface"])
+    layer.data.materials.append(mat)
+    layer.visible_shadow = False
+    return layer
+
+
 def build_vu_overlay(spec, comp, wear):
     """A VU Meter's bezel and glass: everything drawn above its needle. Returns
     (objects, extent) like a builder's."""
@@ -382,11 +420,12 @@ def build_vu_overlay(spec, comp, wear):
     glass.location.z = 4.5 * PX
     glass.data.materials.append(materials.make("glass", wear))
     glass.visible_shadow = False  # a sheet of glass barely darkens what's behind it
+    glint = sheen_layer(f"{comp['id']}_sheen", ww + 2 * PX, wh + 2 * PX, 4.6 * PX)
 
-    for obj in (bezel, glass):
+    for obj in (bezel, glass, glint):
         obj.location.xy = panel_to_world(spec, *comp["pos"])
     half_w, half_h = (d / 2 for d in comp["size"])
-    return [bezel, glass], (half_w, half_h, half_w, half_h)
+    return [bezel, glass, glint], (half_w, half_h, half_w, half_h)
 
 
 BUILDERS = {"knob": build_knob, "toggle": build_toggle, "lamp": build_lamp, "vu_meter": build_vu_meter,

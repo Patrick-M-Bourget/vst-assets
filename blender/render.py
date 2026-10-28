@@ -28,6 +28,7 @@ from backplate import build_backplate  # noqa: E402
 from parts import BUILDERS, OVERLAY_BUILDERS, PX, panel_to_world, scale_marks, states  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
+CONTACT_SPREAD = 0.4  # how far, per px of part height, the contact shadow reaches
 DRAFT_MAX_FRAMES = 16
 
 
@@ -232,7 +233,7 @@ def build_key_light(spec):
     aim = toward_light.to_track_quat("Z", "Y").to_euler()
 
     sun = bpy.data.lights.new("Key", "SUN")
-    sun.energy = light.get("key_energy", 1.1)
+    sun.energy = light.get("key_energy", 1.35)
     sun.angle = math.radians(light.get("key_softness_deg", 5))
     key = bpy.data.objects.new("Key", sun)
     key.rotation_euler = aim
@@ -253,12 +254,25 @@ def build_key_light(spec):
     # shadow catcher keeps only the key's shadows.
     fill_data = bpy.data.lights.new("Fill", "AREA")
     fill_data.size = 40
-    fill_data.energy = light.get("fill_energy", 3200)
+    fill_data.energy = light.get("fill_energy", 2600)
     fill_data.use_shadow = False  # see also unblock_fill()
     fill = bpy.data.objects.new("Fill", fill_data)
     fill.location = (0, 0, 20)
     fill.visible_glossy = False  # lights surfaces, but never shows as a highlight
     bpy.context.scene.collection.objects.link(fill)
+
+    # Contact shadow: a weak, soft sun straight overhead. It casts a tight
+    # shadow all round each part's base, reaching about CONTACT_SPREAD times
+    # the part's height (frame_rect makes room), where the key's shadow only
+    # falls bottom-right. A broad area light did the same but paled every
+    # shadow, since the catcher measures shadow against all the light.
+    contact_data = bpy.data.lights.new("Contact", "SUN")
+    contact_data.energy = light.get("contact_energy", 0.35)
+    contact_data.angle = 2 * math.atan(CONTACT_SPREAD)
+    contact = bpy.data.objects.new("Contact", contact_data)
+    contact.visible_glossy = False
+    contact.visible_transmission = False
+    bpy.context.scene.collection.objects.link(contact)
     return toward_light
 
 
@@ -298,7 +312,8 @@ def frame_rect(comp, extent, height, toward_light):
     angle, plus its shadow, which falls away from the light. `extent` is a
     size centred on `pos`, or a reach (left, top, right, bottom) from it.
     Whole pixels, so Frames line up with the Backplate's pixels."""
-    margin = comp.get("margin", 4)
+    # Room for the contact shadow, which reaches about CONTACT_SPREAD x height all round.
+    margin = comp.get("margin", 4) + CONTACT_SPREAD * height
     # A point `height` above the Panel casts its shadow this far, in px; Panel y grows downward.
     run = height / toward_light.z
     shadow_x, shadow_y = -toward_light.x * run, toward_light.y * run
@@ -440,6 +455,8 @@ def main():
         "panel": {"size": spec["panel"]["size"]},
         "components": rendered,
         "overlays": [{"id": overlay_id, "bounds": rect} for overlay_id, rect in overlays.items()],
+        # Studio light across the plate, applied by pack.py to every Backplate.
+        "falloff": [spec.get("light", {}).get("falloff", 0.15), spec.get("light", {}).get("vignette", 0.3)],
         # Where this machine keeps the Refs, for compare.png (ADR 0003: never committed).
         "refs": [str(REPO / "refs" / spec["name"] / ref) for ref in spec.get("notes", {}).get("refs", [])],
     }

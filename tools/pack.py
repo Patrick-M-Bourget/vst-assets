@@ -12,11 +12,12 @@ Exits 1, listing every problem, when the Frames don't match render.json.
 """
 
 import json
+import math
 import shutil
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageMath
 
 import refboard
 
@@ -118,6 +119,31 @@ def stitch(frame_paths, feather_px):
     return strip
 
 
+def light_falloff(image, strength, vignette):
+    """`image` under studio light: brighter toward the top-left and darker
+    toward the bottom-right by `strength`, darker toward the edges by
+    `vignette`. Done here, not in the material: on a dark plate almost all
+    the brightness is reflection, which a colour change barely moves."""
+    if not strength and not vignette:
+        return image
+    w, h = image.size
+    sw, sh = max(2, w // 8), max(2, h // 8)
+    factor = Image.new("F", (sw, sh))
+    for j in range(sh):
+        v = (j + 0.5) / sh - 0.5  # -0.5 at the top
+        for i in range(sw):
+            u = (i + 0.5) / sw - 0.5
+            tilt = 1 - strength * (u + v)  # 1 + strength at the top-left corner, 1 - strength at the bottom-right
+            # Distance from the centre, the long side squeezed so the edges darken evenly.
+            d = 2 * math.hypot(u * min(1.0, w / h) if w < h else u * 0.5 * w / h, v)
+            edge = 1 - vignette * min(1.0, max(0.0, (d - 0.5) / 0.6)) ** 2
+            factor.putpixel((i, j), tilt * edge)
+    factor = factor.resize((w, h), Image.BILINEAR)
+    bands = image.split()
+    lit = [ImageMath.lambda_eval(lambda e: e["convert"](e["b"] * e["f"], "L"), b=band, f=factor) for band in bands[:3]]
+    return Image.merge(image.mode, lit + list(bands[3:]))
+
+
 def contact_sheet(record, backplate, strips, overlays):
     """The Panel three times, stacked: every Component at its first, middle and
     last Frame, cut from the Filmstrips that ship, with the Overlays on top."""
@@ -195,9 +221,9 @@ def pack(out_dir):
     backplate = None
     if backplate_path.exists():
         file = f"bg_{name}_{scale}x.png"
-        shutil.copyfile(backplate_path, final / file)
+        backplate = light_falloff(load(backplate_path), *record.get("falloff", [0, 0]))
+        backplate.save(final / file)
         manifest["backplate"] = {"file": file, "size": list(panel_size)}
-        backplate = load(backplate_path)
 
     strips = []
     for comp in record["components"]:
