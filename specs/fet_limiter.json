@@ -9,13 +9,12 @@
     "look_brief": [
       "Layout: 2U black-face FET limiter, 1100x200 at 1x, from blackface_1176ln_rack.jpg (straight-on). Our name FIELDLINE / FL-1; no third-party marks.",
       "Panel: satin black, powder_coat #1c1c1e; white printed labels; eight Phillips screws (panel.screw_head phillips), no separate rack ears.",
-      "Input/Output knobs: clear-black acrylic skirt with a white pointer line, knurled aluminium cap on top. Approximated: plain flat black disc (height 0.28) carrying the line; the cap is not rendered.",
-      "Attack/Release knobs: knurled black base, brushed aluminium cap with a black dot pointer. Approximated: plain zinc knob with a white line.",
+      "Input/Output knobs: smoked clear skirt (104 px) carrying a white pointer line, black knurled collar, spun aluminium cap: style skirt_cap, pointer on the skirt.",
+      "Attack/Release knobs: tall black knurled body, spun aluminium cap with a black dot pointer: style skirt_cap, pointer dot.",
       "Knob scales: upright white numbers with dots between: scale_marks with color, upright, dots.",
       "VU: cream face, black needle, red band 0..+3, dark bezel. Covered by vu_meter.",
       "Wear: light (0.25): studio rack unit, clean face. Lighting: default key top-left.",
-      "UNCOVERED: RATIO and METER latching push-button columns (4 buttons each). Left out of this Draft.",
-      "UNCOVERED: knob skirt + metal cap two-part knob; small knurled knob with dot pointer."
+      "UNCOVERED: RATIO and METER latching push-button columns (4 buttons each). Left out of this Draft."
     ]
   },
   "panel": {
@@ -236,10 +235,23 @@
         108
       ],
       "diameter": 104,
-      "material": "bakelite_black",
       "style": {
-        "shape": "plain",
-        "height": 0.28
+        "shape": "skirt_cap",
+        "skirt": {
+          "diameter": 104,
+          "height": 2.5
+        },
+        "knurl": {
+          "diameter": 60,
+          "height": 8,
+          "teeth": 48
+        },
+        "cap": {
+          "diameter": 50,
+          "height": 10
+        },
+        "pointer": "line",
+        "pointer_on": "skirt"
       },
       "frames": 128,
       "angle": [
@@ -290,7 +302,8 @@
         "color": "#e6e3da",
         "upright": true,
         "dots": 68
-      }
+      },
+      "margin": 10
     },
     {
       "id": "output",
@@ -300,10 +313,23 @@
         108
       ],
       "diameter": 104,
-      "material": "bakelite_black",
       "style": {
-        "shape": "plain",
-        "height": 0.28
+        "shape": "skirt_cap",
+        "skirt": {
+          "diameter": 104,
+          "height": 2.5
+        },
+        "knurl": {
+          "diameter": 60,
+          "height": 8,
+          "teeth": 48
+        },
+        "cap": {
+          "diameter": 50,
+          "height": 10
+        },
+        "pointer": "line",
+        "pointer_on": "skirt"
       },
       "frames": 128,
       "angle": [
@@ -354,7 +380,8 @@
         "color": "#e6e3da",
         "upright": true,
         "dots": 68
-      }
+      },
+      "margin": 10
     },
     {
       "id": "attack",
@@ -363,11 +390,19 @@
         611,
         60
       ],
-      "diameter": 44,
-      "material": "zinc",
+      "diameter": 40,
       "style": {
-        "shape": "plain",
-        "height": 0.6
+        "shape": "skirt_cap",
+        "knurl": {
+          "diameter": 40,
+          "height": 12,
+          "teeth": 36
+        },
+        "cap": {
+          "diameter": 31,
+          "height": 5
+        },
+        "pointer": "dot"
       },
       "frames": 128,
       "angle": [
@@ -407,11 +442,19 @@
         611,
         152
       ],
-      "diameter": 44,
-      "material": "zinc",
+      "diameter": 40,
       "style": {
-        "shape": "plain",
-        "height": 0.6
+        "shape": "skirt_cap",
+        "knurl": {
+          "diameter": 40,
+          "height": 12,
+          "teeth": 36
+        },
+        "cap": {
+          "diameter": 31,
+          "height": 5
+        },
+        "pointer": "dot"
       },
       "frames": 128,
       "angle": [
