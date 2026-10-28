@@ -5,6 +5,7 @@ Sizes and positions are in 1× px; `pos` is from the Panel's top-left. Angles ar
 ## Top level
 
 - `name`: output goes to `out/<name>/`.
+- `target`: `juce` (the default) or `reason`, a Rack Extension's 2D GUI (ADR 0008). A reason Spec works in Reason's 1/5 space: `panel.size` is `[754, 69 × U]` and the Final renders at 5× (3770 wide), ignoring `panel.scale`. Component ids must be Lua names. Optional blocks `back` (`labels`, `screws`), `folded_front` and `folded_back` (`labels`; 754×30) take the front's finish. `pack.py` then also writes `final/GUI2D/`: `Panel_Front`, `Panel_Back`, `Panel_Folded_Front`, `Panel_Folded_Back`, every Filmstrip and Overlay, and `device_2D.lua`. The plugin writes `hdgui_2D.lua` itself.
 - `notes.look_brief` (lines of text) and `notes.refs` (file names in `refs/<name>/`).
 - `wear`: 0–1, default 0.3.
 - `light`: `key_angle_deg` (45), `key_energy`, `softbox_energy`, `fill_energy`, `hdri` (a Blender studio light), `hdri_strength`.
