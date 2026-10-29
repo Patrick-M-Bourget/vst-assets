@@ -48,6 +48,14 @@ The Spec's table of printed values and their angles. It draws both a Knob's tick
 **Wear**:
 One number from 0 to 1 for how used the hardware looks: scratches, dulled paint, dust in the recesses. 0.3 is light vintage.
 
+**House Look**:
+The lighting, tone, materials and finishing every Panel shares. A Spec may change only a short list of things (Panel and VU face colour and finish, Wear, vignette); everything else is the House Look's.
+_Avoid_: Theme, style, preset
+
+**Look Version**:
+The number of the House Look a Render was made with. It goes up whenever the House Look changes, so a shipped Panel made with an older one is out of date.
+_Avoid_: Look revision, look tag
+
 **Refs**:
 Reference images for a Spec, in `refs/<spec name>/`. They stay on the user's machine and are never committed.
 
@@ -92,6 +100,10 @@ The Backplate with each Component's first, middle and last Frames composited in 
 
 **Compare**:
 `compare.png`: the Contact Sheet beside the Moodboard, written by `pack.py` when the Spec lists Refs. It's how a Draft is checked against its Refs.
+
+**Golden**:
+The stored Contact Sheet of a Spec's Draft that later Drafts are compared with, so a change to the House Look or a generator shows every Panel it moved.
+_Avoid_: Snapshot, baseline
 
 **Gate**:
 A point where the user approves the look before work goes on.
